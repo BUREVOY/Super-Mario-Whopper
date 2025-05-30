@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Docker и production настройки
-  output: "standalone",
+  output: "export",
+  trailingSlash: true,
 
   // Оптимизация для статических ассетов
   images: {
@@ -10,18 +11,28 @@ const nextConfig: NextConfig = {
   },
 
   // Настройки для игровых ассетов
-  assetPrefix: process.env.NODE_ENV === "production" ? "" : "",
+  assetPrefix:
+    process.env.NODE_ENV === "production" ? "/super_mario_whopper" : "",
+  basePath: process.env.NODE_ENV === "production" ? "/super_mario_whopper" : "",
 
   // Webpack конфигурация для игровых ресурсов
   webpack: (config, { isServer }) => {
+    // Конфигурация для Phaser
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        path: false,
+      };
+    }
+
     // Поддержка аудио файлов
     config.module.rules.push({
       test: /\.(mp3|wav|ogg)$/,
       use: {
         loader: "file-loader",
         options: {
-          publicPath: "/_next/static/sounds/",
           outputPath: "static/sounds/",
+          publicPath: "/_next/static/sounds/",
         },
       },
     });
@@ -54,7 +65,7 @@ const nextConfig: NextConfig = {
   },
 
   // Headers для безопасности и Burger King брендинга
-  headers: async () => {
+  async headers() {
     return [
       {
         source: "/(.*)",

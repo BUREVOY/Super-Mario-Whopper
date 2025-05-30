@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: super-mario-whopper
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    buildCommand: docker build --target production -t super-mario-whopper:prod .
+    startCommand: docker run --rm -p $PORT:3000 super-mario-whopper:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    healthCheckPath: /api/health
+    autoDeploy: true
