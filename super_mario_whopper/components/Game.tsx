@@ -8,6 +8,7 @@ import { MenuScene } from "@/lib/game/scenes/MenuScene";
 import { GameScene } from "@/lib/game/scenes/GameScene";
 import { GameOverScene } from "@/lib/game/scenes/GameOverScene";
 import { VictoryScene } from "@/lib/game/scenes/VictoryScene";
+import { MobileControlsScene } from "@/lib/game/scenes/MobileControlsScene";
 
 interface GameProps {
   className?: string;
@@ -42,6 +43,7 @@ export default function Game({ className = "" }: GameProps) {
           GameScene,
           GameOverScene,
           VictoryScene,
+          MobileControlsScene,
         ],
         scale: {
           mode: Phaser.Scale.FIT,
@@ -55,42 +57,125 @@ export default function Game({ className = "" }: GameProps) {
             height: 1080,
           },
         },
+        input: {
+          touch: {
+            capture: true,
+          },
+          mouse: {
+            preventDefaultWheel: false,
+          },
+          activePointers: 3, // Поддержка мультитач
+        },
         render: {
           antialias: true,
           pixelArt: false,
+          roundPixels: false,
         },
+        // Мобильная оптимизация
+        autoMobilePipeline: true,
+        powerPreference: "high-performance",
         audio: {
           disableWebAudio: false,
+        },
+        dom: {
+          createContainer: true,
         },
       };
 
       phaserGameRef.current = new Phaser.Game(config);
 
+      // Обработка изменения размера экрана для мобильных устройств
+      const handleResize = () => {
+        if (phaserGameRef.current) {
+          const game = phaserGameRef.current;
+          const mobileControlsScene = game.scene.getScene(
+            "MobileControlsScene"
+          ) as any;
+
+          if (mobileControlsScene && mobileControlsScene.resize) {
+            mobileControlsScene.resize(window.innerWidth, window.innerHeight);
+          }
+        }
+      };
+
+      // Обработка изменения ориентации
+      const handleOrientationChange = () => {
+        setTimeout(handleResize, 100); // Небольшая задержка для корректного получения размеров
+      };
+
+      window.addEventListener("resize", handleResize);
+      window.addEventListener("orientationchange", handleOrientationChange);
+
+      // Предотвращение зума на мобильных устройствах
+      const preventZoom = (e: TouchEvent) => {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      };
+
+      document.addEventListener("touchstart", preventZoom, { passive: false });
+
+      setIsGameLoaded(true);
+
       // Обработчики событий игры
       phaserGameRef.current.events.on("ready", () => {
-        setIsGameLoaded(true);
         console.log("🍔 Super Mario Whopper загружен!");
+        setIsGameLoaded(true);
       });
 
       phaserGameRef.current.events.on("destroy", () => {
         setIsGameLoaded(false);
         console.log("🍔 Super Mario Whopper остановлен");
       });
+
+      // Дополнительная проверка - если игра создана, считаем её загруженной
+      setTimeout(() => {
+        if (phaserGameRef.current && !isGameLoaded) {
+          console.log("🎮 Принудительно устанавливаем флаг загрузки игры");
+          setIsGameLoaded(true);
+        }
+
+        // Проверяем canvas
+        if (gameRef.current) {
+          const canvas = gameRef.current.querySelector("canvas");
+          if (canvas) {
+            console.log("🎮 Canvas найден:", canvas);
+            console.log("🎮 Canvas размеры:", canvas.width, "x", canvas.height);
+            console.log("🎮 Canvas стили:", window.getComputedStyle(canvas));
+
+            // Принудительно делаем canvas видимым
+            canvas.style.display = "block";
+            canvas.style.visibility = "visible";
+            canvas.style.opacity = "1";
+            canvas.style.zIndex = "1";
+
+            console.log("🎮 Canvas принудительно сделан видимым");
+          } else {
+            console.log("❌ Canvas не найден в контейнере");
+          }
+        }
+      }, 2000); // Через 2 секунды после создания
+
+      // Cleanup функция
+      return () => {
+        window.removeEventListener("resize", handleResize);
+        window.removeEventListener(
+          "orientationchange",
+          handleOrientationChange
+        );
+        document.removeEventListener("touchstart", preventZoom);
+
+        if (phaserGameRef.current) {
+          phaserGameRef.current.destroy(true);
+          phaserGameRef.current = null;
+        }
+      };
     } catch (error) {
-      console.error("Ошибка при инициализации игры:", error);
+      console.error("Ошибка при создании игры:", error);
       setGameError(
         error instanceof Error ? error.message : "Неизвестная ошибка"
       );
     }
-
-    // Cleanup функция
-    return () => {
-      if (phaserGameRef.current) {
-        phaserGameRef.current.destroy(true);
-        phaserGameRef.current = null;
-        setIsGameLoaded(false);
-      }
-    };
   }, []);
 
   // Обработка изменения размера окна
@@ -144,10 +229,13 @@ export default function Game({ className = "" }: GameProps) {
       {/* Контейнер для игры */}
       <div
         ref={gameRef}
-        className="w-full h-full min-h-[600px] rounded-lg overflow-hidden shadow-lg"
+        className="w-full h-full min-h-[600px] rounded-lg overflow-hidden shadow-lg relative"
         style={{
           background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
           border: "4px solid #8B4513",
+          display: "block",
+          position: "relative",
+          zIndex: 1,
         }}
       />
 
@@ -160,6 +248,37 @@ export default function Game({ className = "" }: GameProps) {
           <div>ESC - Пауза</div>
         </div>
       )}
+
+      {/* Кнопка отладки для принудительного показа игры */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => {
+            console.log("🔧 Принудительный показ игры");
+            setIsGameLoaded(true);
+
+            if (gameRef.current) {
+              const canvas = gameRef.current.querySelector("canvas");
+              if (canvas) {
+                canvas.style.display = "block";
+                canvas.style.visibility = "visible";
+                canvas.style.opacity = "1";
+                canvas.style.zIndex = "10";
+                console.log("🔧 Canvas принудительно показан");
+              }
+            }
+
+            if (phaserGameRef.current) {
+              console.log(
+                "🔧 Текущая сцена:",
+                phaserGameRef.current.scene.getScenes().map((s) => s.scene.key)
+              );
+            }
+          }}
+          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        >
+          🔧 Показать игру
+        </button>
+      </div>
     </div>
   );
 }

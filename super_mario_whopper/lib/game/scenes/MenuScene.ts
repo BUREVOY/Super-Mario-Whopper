@@ -14,19 +14,73 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log("🎮 MenuScene: Сцена меню запущена!");
+    console.log("🎮 MenuScene: Проверка доступных текстур...");
+
+    // Проверяем ключевые текстуры
+    const requiredTextures = ["bk_background", "player"];
+    requiredTextures.forEach((key) => {
+      if (this.textures.exists(key)) {
+        console.log(`✅ MenuScene: ${key} доступен`);
+      } else {
+        console.log(`❌ MenuScene: ${key} НЕ доступен`);
+      }
+    });
+
     this.createBackground();
     this.createLogo();
     this.createMenu();
     this.createAnimations();
     this.setupInput();
+
+    console.log("🎮 MenuScene: Инициализация завершена!");
+
+    // Дополнительная проверка видимости сцены
+    console.log("🎮 MenuScene: Проверка видимости сцены...");
+    console.log("🎮 MenuScene: Сцена активна:", this.scene.isActive());
+    console.log("🎮 MenuScene: Сцена видима:", this.scene.isVisible());
+    console.log("🎮 MenuScene: Камера видима:", this.cameras.main.visible);
+
+    // Принудительно делаем сцену видимой
+    this.scene.setVisible(true);
+    this.cameras.main.setVisible(true);
+
+    console.log("🎮 MenuScene: Принудительно установили видимость");
   }
 
   private createBackground(): void {
+    console.log("🎮 MenuScene: Создание фона...");
+
     // Фон в стиле ресторана Burger King
-    this.background = this.add.image(0, 0, "bk_background");
-    this.background.setOrigin(0, 0);
-    this.background.setDisplaySize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
-    this.background.setAlpha(0.8);
+    // Проверяем доступные текстуры фона
+    let backgroundKey = "bk_background";
+    if (
+      !this.textures.exists("bk_background") &&
+      this.textures.exists("bk_restaurant")
+    ) {
+      backgroundKey = "bk_restaurant";
+      console.log(
+        "🎮 MenuScene: Используем bk_restaurant вместо bk_background"
+      );
+    }
+
+    if (this.textures.exists(backgroundKey)) {
+      this.background = this.add.image(0, 0, backgroundKey);
+      this.background.setOrigin(0, 0);
+      this.background.setDisplaySize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+      this.background.setAlpha(0.8);
+      console.log(`✅ MenuScene: Фон ${backgroundKey} создан`);
+    } else {
+      // Fallback - простой цветной фон
+      this.background = this.add.rectangle(
+        GAME_CONFIG.WIDTH / 2,
+        GAME_CONFIG.HEIGHT / 2,
+        GAME_CONFIG.WIDTH,
+        GAME_CONFIG.HEIGHT,
+        parseInt(COLORS.BK_RED.replace("#", ""), 16)
+      ) as any;
+      console.log("⚠️ MenuScene: Используем fallback фон");
+    }
 
     // Добавляем оверлей для лучшей читаемости текста
     const overlay = this.add.rectangle(
@@ -37,23 +91,33 @@ export class MenuScene extends Phaser.Scene {
       0x000000,
       0.4
     );
+
+    console.log("✅ MenuScene: Фон создан успешно");
   }
 
   private createLogo(): void {
-    // Главный логотип игры
-    this.logo = this.add.text(
-      GAME_CONFIG.WIDTH / 2,
-      150,
-      "SUPER MARIO WHOPPER",
-      {
-        fontSize: "64px",
-        color: COLORS.BK_YELLOW,
-        fontFamily: "Arial Black",
-        stroke: COLORS.BLACK,
-        strokeThickness: 6,
-      }
-    );
-    this.logo.setOrigin(0.5);
+    console.log("🎮 MenuScene: Создание логотипа...");
+
+    try {
+      // Главный логотип игры
+      this.logo = this.add.text(
+        GAME_CONFIG.WIDTH / 2,
+        150,
+        "SUPER MARIO WHOPPER",
+        {
+          fontSize: "64px",
+          color: COLORS.BK_YELLOW,
+          fontFamily: "Arial Black",
+          stroke: COLORS.BLACK,
+          strokeThickness: 6,
+        }
+      );
+      this.logo.setOrigin(0.5);
+
+      console.log("✅ MenuScene: Логотип создан успешно");
+    } catch (error) {
+      console.error("❌ MenuScene: Ошибка при создании логотипа:", error);
+    }
 
     // Подзаголовок
     this.subtitle = this.add.text(
@@ -78,6 +142,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createMenu(): void {
+    console.log("🎮 MenuScene: Создание меню...");
+
     const buttonStyle = {
       fontSize: "32px",
       color: COLORS.WHITE,
@@ -98,49 +164,92 @@ export class MenuScene extends Phaser.Scene {
       strokeThickness: 2,
     };
 
-    // Кнопка "Начать игру"
-    this.startButton = this.add.text(
-      GAME_CONFIG.WIDTH / 2,
-      350,
-      "НАЧАТЬ ИГРУ",
-      buttonStyle
-    );
-    this.startButton.setOrigin(0.5);
-    this.startButton.setInteractive({ useHandCursor: true });
+    // Специальный стиль для кнопки заказа
+    const orderButtonStyle = {
+      fontSize: "32px",
+      color: COLORS.WHITE,
+      fontFamily: "Arial Bold",
+      backgroundColor: COLORS.BK_ORANGE,
+      padding: { x: 20, y: 10 },
+      stroke: COLORS.BLACK,
+      strokeThickness: 2,
+    };
 
-    // Кнопка "Инструкции"
-    this.instructionsButton = this.add.text(
-      GAME_CONFIG.WIDTH / 2,
-      420,
-      "ИНСТРУКЦИИ",
-      buttonStyle
-    );
-    this.instructionsButton.setOrigin(0.5);
-    this.instructionsButton.setInteractive({ useHandCursor: true });
+    const orderHoverStyle = {
+      fontSize: "32px",
+      color: COLORS.BK_YELLOW,
+      fontFamily: "Arial Bold",
+      backgroundColor: COLORS.BK_RED,
+      padding: { x: 20, y: 10 },
+      stroke: COLORS.BLACK,
+      strokeThickness: 2,
+    };
 
-    // Кнопка "Авторы"
-    this.creditsButton = this.add.text(
-      GAME_CONFIG.WIDTH / 2,
-      490,
-      "АВТОРЫ",
-      buttonStyle
-    );
-    this.creditsButton.setOrigin(0.5);
-    this.creditsButton.setInteractive({ useHandCursor: true });
+    try {
+      // Кнопка "Начать игру"
+      this.startButton = this.add.text(
+        GAME_CONFIG.WIDTH / 2,
+        320,
+        "НАЧАТЬ ИГРУ",
+        buttonStyle
+      );
+      this.startButton.setOrigin(0.5);
+      this.startButton.setInteractive({ useHandCursor: true });
 
-    // Настройка интерактивности кнопок
-    this.setupButtonEvents(this.startButton, hoverStyle, buttonStyle, () =>
-      this.startGame()
-    );
-    this.setupButtonEvents(
-      this.instructionsButton,
-      hoverStyle,
-      buttonStyle,
-      () => this.showInstructions()
-    );
-    this.setupButtonEvents(this.creditsButton, hoverStyle, buttonStyle, () =>
-      this.showCredits()
-    );
+      // Кнопка "Пройти опрос" - новая кнопка
+      const orderButton = this.add.text(
+        GAME_CONFIG.WIDTH / 2,
+        380,
+        "ПРОЙТИ ОПРОС",
+        orderButtonStyle
+      );
+      orderButton.setOrigin(0.5);
+      orderButton.setInteractive({ useHandCursor: true });
+
+      // Кнопка "Инструкции"
+      this.instructionsButton = this.add.text(
+        GAME_CONFIG.WIDTH / 2,
+        440,
+        "ИНСТРУКЦИИ",
+        buttonStyle
+      );
+      this.instructionsButton.setOrigin(0.5);
+      this.instructionsButton.setInteractive({ useHandCursor: true });
+
+      // Кнопка "Авторы"
+      this.creditsButton = this.add.text(
+        GAME_CONFIG.WIDTH / 2,
+        500,
+        "АВТОРЫ",
+        buttonStyle
+      );
+      this.creditsButton.setOrigin(0.5);
+      this.creditsButton.setInteractive({ useHandCursor: true });
+
+      // Настройка интерактивности кнопок
+      this.setupButtonEvents(this.startButton, hoverStyle, buttonStyle, () =>
+        this.startGame()
+      );
+      this.setupButtonEvents(
+        orderButton,
+        orderHoverStyle,
+        orderButtonStyle,
+        () => this.openBurgerKingWebsite()
+      );
+      this.setupButtonEvents(
+        this.instructionsButton,
+        hoverStyle,
+        buttonStyle,
+        () => this.showInstructions()
+      );
+      this.setupButtonEvents(this.creditsButton, hoverStyle, buttonStyle, () =>
+        this.showCredits()
+      );
+
+      console.log("✅ MenuScene: Меню создано успешно");
+    } catch (error) {
+      console.error("❌ MenuScene: Ошибка при создании меню:", error);
+    }
 
     // Информация об управлении внизу экрана
     const controlsText = this.add.text(
@@ -294,6 +403,7 @@ export class MenuScene extends Phaser.Scene {
     let selectedButton = 0;
     const buttons = [
       this.startButton,
+      this.add.text(0, 0, ""), // Placeholder для кнопки заказа (она создается локально)
       this.instructionsButton,
       this.creditsButton,
     ];
@@ -306,6 +416,27 @@ export class MenuScene extends Phaser.Scene {
     downKey.on("down", () => {
       selectedButton = (selectedButton + 1) % buttons.length;
       this.highlightButton(buttons, selectedButton);
+    });
+
+    // Обработка Enter для выбранной кнопки
+    const selectKey = this.input.keyboard!.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SPACE
+    );
+    selectKey.on("down", () => {
+      switch (selectedButton) {
+        case 0:
+          this.startGame();
+          break;
+        case 1:
+          this.openBurgerKingWebsite();
+          break;
+        case 2:
+          this.showInstructions();
+          break;
+        case 3:
+          this.showCredits();
+          break;
+      }
     });
   }
 
@@ -415,6 +546,8 @@ R - Перезапуск уровня
     const creditsText = `
 SUPER MARIO WHOPPER
 
+Made with love by Арсений Юдаков
+
 Создано с использованием:
 • Phaser 3 - игровой движок
 • TypeScript - язык программирования
@@ -450,5 +583,146 @@ SUPER MARIO WHOPPER
       this.input.keyboard!.off("keydown", closeHandler);
     };
     this.input.keyboard!.on("keydown", closeHandler);
+  }
+
+  private openBurgerKingWebsite(): void {
+    console.log("🍔 MenuScene: Перенаправление на сайт Burger King...");
+
+    // Показываем уведомление перед переходом
+    const modal = this.add.rectangle(
+      GAME_CONFIG.WIDTH / 2,
+      GAME_CONFIG.HEIGHT / 2,
+      500,
+      300,
+      0x000000,
+      0.9
+    );
+    modal.setStrokeStyle(4, parseInt(COLORS.BK_YELLOW.replace("#", ""), 16));
+
+    const notificationText = this.add.text(
+      GAME_CONFIG.WIDTH / 2,
+      GAME_CONFIG.HEIGHT / 2 - 30,
+      "🍔 Переходим на сайт Burger King!\n\n🍟 Заказывайте вкусные Whopper,\nкартошку фри и другие блюда!\n\n👑 Burger King - Вкус правит!",
+      {
+        fontSize: "20px",
+        color: COLORS.WHITE,
+        fontFamily: "Arial Bold",
+        align: "center",
+      }
+    );
+    notificationText.setOrigin(0.5);
+
+    // Кнопка "Перейти"
+    const goButton = this.add.rectangle(
+      GAME_CONFIG.WIDTH / 2 - 80,
+      GAME_CONFIG.HEIGHT / 2 + 80,
+      120,
+      40,
+      parseInt(COLORS.BK_RED.replace("#", ""), 16)
+    );
+    goButton.setStrokeStyle(3, parseInt(COLORS.BLACK.replace("#", ""), 16));
+
+    const goText = this.add.text(
+      GAME_CONFIG.WIDTH / 2 - 80,
+      GAME_CONFIG.HEIGHT / 2 + 80,
+      "ПЕРЕЙТИ",
+      {
+        fontSize: "16px",
+        color: COLORS.WHITE,
+        fontFamily: "Arial Bold",
+      }
+    );
+    goText.setOrigin(0.5);
+
+    // Кнопка "Отмена"
+    const cancelButton = this.add.rectangle(
+      GAME_CONFIG.WIDTH / 2 + 80,
+      GAME_CONFIG.HEIGHT / 2 + 80,
+      120,
+      40,
+      parseInt(COLORS.BK_BROWN.replace("#", ""), 16)
+    );
+    cancelButton.setStrokeStyle(3, parseInt(COLORS.BLACK.replace("#", ""), 16));
+
+    const cancelText = this.add.text(
+      GAME_CONFIG.WIDTH / 2 + 80,
+      GAME_CONFIG.HEIGHT / 2 + 80,
+      "ОТМЕНА",
+      {
+        fontSize: "16px",
+        color: COLORS.WHITE,
+        fontFamily: "Arial Bold",
+      }
+    );
+    cancelText.setOrigin(0.5);
+
+    // Интерактивность кнопок
+    goButton.setInteractive();
+    goButton.on("pointerdown", () => {
+      // Открываем сайт Burger King в новой вкладке
+      window.open(
+        "https://edu.burgerkingrus.ru/view_doc.html?mode=bkpoll&getpoll=KingGuru_8_years",
+        "_blank"
+      );
+
+      // Закрываем модальное окно
+      modal.destroy();
+      notificationText.destroy();
+      goButton.destroy();
+      goText.destroy();
+      cancelButton.destroy();
+      cancelText.destroy();
+    });
+
+    goButton.on("pointerover", () => {
+      goButton.setFillStyle(parseInt(COLORS.BK_ORANGE.replace("#", ""), 16));
+    });
+
+    goButton.on("pointerout", () => {
+      goButton.setFillStyle(parseInt(COLORS.BK_RED.replace("#", ""), 16));
+    });
+
+    cancelButton.setInteractive();
+    cancelButton.on("pointerdown", () => {
+      // Закрываем модальное окно
+      modal.destroy();
+      notificationText.destroy();
+      goButton.destroy();
+      goText.destroy();
+      cancelButton.destroy();
+      cancelText.destroy();
+    });
+
+    cancelButton.on("pointerover", () => {
+      cancelButton.setFillStyle(
+        parseInt(COLORS.BK_ORANGE.replace("#", ""), 16)
+      );
+    });
+
+    cancelButton.on("pointerout", () => {
+      cancelButton.setFillStyle(parseInt(COLORS.BK_BROWN.replace("#", ""), 16));
+    });
+
+    // Анимация появления модального окна
+    modal.setAlpha(0);
+    notificationText.setAlpha(0);
+    goButton.setAlpha(0);
+    goText.setAlpha(0);
+    cancelButton.setAlpha(0);
+    cancelText.setAlpha(0);
+
+    this.tweens.add({
+      targets: [
+        modal,
+        notificationText,
+        goButton,
+        goText,
+        cancelButton,
+        cancelText,
+      ],
+      alpha: 1,
+      duration: 300,
+      ease: "Power2",
+    });
   }
 }

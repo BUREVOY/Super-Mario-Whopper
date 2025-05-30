@@ -27,12 +27,18 @@ export class GameScene extends Phaser.Scene {
   };
 
   private gameTimer!: Phaser.Time.TimerEvent;
+  private isLevelCompleted: boolean = false; // Флаг для предотвращения повторных вызовов
 
   constructor() {
     super({ key: SCENES.GAME });
   }
 
   create(): void {
+    console.log("🎮 GameScene: Игровая сцена запущена!");
+
+    // Сброс флагов при создании/рестарте сцены
+    this.isLevelCompleted = false;
+
     // Отладочная информация о текстурах
     console.log("🎮 GameScene: Проверка текстур:");
     const requiredTextures = [
@@ -69,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     this.setupCamera();
     this.setupGameTimer();
     this.setupInputs();
+    this.setupMobileControls();
   }
 
   private createBackground(): void {
@@ -483,17 +490,29 @@ export class GameScene extends Phaser.Scene {
 
   private checkLevelComplete(): void {
     // Проверка завершения уровня (игрок достиг конца)
-    if (this.player.x >= 3000) {
+    if (!this.isLevelCompleted && this.player.x >= 3000) {
       this.levelComplete();
     }
   }
 
   private levelComplete(): void {
+    if (this.isLevelCompleted) return;
+
+    this.isLevelCompleted = true;
+
     this.physics.pause();
+
+    console.log("🏆 Уровень завершен!");
+    console.log("🔊 Проверяем наличие звука VICTORY:", SOUNDS.VICTORY);
+    console.log("🔊 Кэш аудио:", this.cache.audio.exists(SOUNDS.VICTORY));
+    console.log("🔊 Все загруженные аудио:", this.cache.audio.getKeys());
 
     // Проверяем, существует ли звук перед воспроизведением
     if (this.cache.audio.exists(SOUNDS.VICTORY)) {
-      this.sound.play(SOUNDS.VICTORY, { volume: 0.8 });
+      console.log("🎵 Воспроизводим", SOUNDS.VICTORY, "с volume: 0.3");
+      this.sound.play(SOUNDS.VICTORY, { volume: 0.3 });
+    } else {
+      console.error("❌ Звук VICTORY не найден в кэше!");
     }
 
     // Бонус за оставшееся время
@@ -555,5 +574,20 @@ export class GameScene extends Phaser.Scene {
     );
     healthBar.setScrollFactor(0);
     healthBar.setName("healthBar");
+  }
+
+  private setupMobileControls(): void {
+    // Запускаем сцену мобильного управления параллельно
+    if (this.isMobileDevice()) {
+      this.scene.launch(SCENES.MOBILE_CONTROLS);
+    }
+  }
+
+  private isMobileDevice(): boolean {
+    return (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || "ontouchstart" in window
+    );
   }
 }

@@ -104,7 +104,7 @@ export class VictoryScene extends Phaser.Scene {
     );
     levelText.setOrigin(0.5);
 
-    // Кнопка "Следующий уровень"
+    // Кнопка "Пройти опрос" (бывшая "Следующий уровень")
     const nextLevelButton = this.add.rectangle(
       width / 2,
       height / 2 + 120,
@@ -120,7 +120,7 @@ export class VictoryScene extends Phaser.Scene {
     const nextLevelText = this.add.text(
       width / 2,
       height / 2 + 120,
-      "СЛЕДУЮЩИЙ УРОВЕНЬ",
+      "ПРОЙТИ ОПРОС",
       {
         fontSize: "18px",
         color: COLORS.WHITE,
@@ -154,8 +154,8 @@ export class VictoryScene extends Phaser.Scene {
     // Интерактивность кнопок
     nextLevelButton.setInteractive();
     nextLevelButton.on("pointerdown", () => {
-      // Пока что просто перезапускаем игру (можно добавить систему уровней позже)
-      this.scene.start(SCENES.GAME);
+      // Перенаправляем на сайт Burger King
+      this.openBurgerKingWebsite();
     });
 
     nextLevelButton.on("pointerover", () => {
@@ -188,7 +188,7 @@ export class VictoryScene extends Phaser.Scene {
       Phaser.Input.Keyboard.KeyCodes.SPACE
     );
     spaceKey.on("down", () => {
-      this.scene.start(SCENES.GAME);
+      this.openBurgerKingWebsite();
     });
 
     const escKey = this.input.keyboard!.addKey(
@@ -202,7 +202,7 @@ export class VictoryScene extends Phaser.Scene {
     const controlsText = this.add.text(
       width / 2,
       height - 50,
-      "ПРОБЕЛ - следующий уровень | ESC - в меню",
+      "ПРОБЕЛ - Пройти опрос | ESC - в меню",
       {
         fontSize: "16px",
         color: COLORS.BK_BROWN,
@@ -243,6 +243,49 @@ export class VictoryScene extends Phaser.Scene {
 
     // Эффект конфетти
     this.createConfetti();
+  }
+
+  private openBurgerKingWebsite(): void {
+    console.log("🍔 Перенаправление на сайт Burger King...");
+
+    // Показываем уведомление перед переходом
+    const notification = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      400,
+      200,
+      0x000000,
+      0.9
+    );
+    notification.setStrokeStyle(
+      4,
+      parseInt(COLORS.BK_YELLOW.replace("#", ""), 16)
+    );
+
+    const notificationText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "🍔 Переходим на сайт\nBurger King!\n\nЗаказывайте вкусные Whopper!",
+      {
+        fontSize: "20px",
+        color: COLORS.WHITE,
+        fontFamily: "Arial Bold",
+        align: "center",
+      }
+    );
+    notificationText.setOrigin(0.5);
+
+    // Через 2 секунды открываем сайт
+    this.time.delayedCall(2000, () => {
+      // Открываем сайт Burger King в новой вкладке
+      window.open(
+        "https://edu.burgerkingrus.ru/view_doc.html?mode=bkpoll&getpoll=KingGuru_8_years",
+        "_blank"
+      );
+
+      // Возвращаемся в главное меню
+      this.scene.start(SCENES.MENU);
+    });
   }
 
   private createConfetti(): void {

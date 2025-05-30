@@ -10,6 +10,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private speedBoost: number = 1;
   private speedBoostTimer?: Phaser.Time.TimerEvent;
 
+  // Мобильное управление
+  private mobileControls = {
+    left: false,
+    right: false,
+    jump: false,
+  };
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "player");
 
@@ -27,6 +34,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Настройка управления
     this.setupControls();
+    this.setupMobileControls();
 
     // Создание анимаций
     this.createAnimations();
@@ -51,6 +59,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.controls.rightAlt = keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D);
     this.controls.upAlt = keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W);
     this.controls.downAlt = keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+  }
+
+  private setupMobileControls(): void {
+    // Слушаем события мобильного управления
+    this.scene.events.on("mobileControl", (data: any) => {
+      switch (data.action) {
+        case "left":
+          this.mobileControls.left = data.pressed;
+          break;
+        case "right":
+          this.mobileControls.right = data.pressed;
+          break;
+        case "jump":
+          this.mobileControls.jump = data.pressed;
+          break;
+        case "pause":
+          if (data.pressed) {
+            this.scene.scene.pause();
+            this.scene.scene.launch(SCENES.PAUSE);
+          }
+          break;
+      }
+    });
   }
 
   private createAnimations(): void {
@@ -105,24 +136,36 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private handleMovement(): void {
     const speed = PLAYER_CONFIG.SPEED * this.speedBoost;
 
-    // Горизонтальное движение (стрелки или WASD)
-    if (this.controls.left.isDown || this.controls.leftAlt?.isDown) {
+    // Проверяем как клавиатуру, так и мобильное управление
+    const leftPressed =
+      this.controls.left.isDown ||
+      this.controls.leftAlt?.isDown ||
+      this.mobileControls.left;
+
+    const rightPressed =
+      this.controls.right.isDown ||
+      this.controls.rightAlt?.isDown ||
+      this.mobileControls.right;
+
+    const jumpPressed =
+      this.controls.up.isDown ||
+      this.controls.upAlt?.isDown ||
+      this.controls.space.isDown ||
+      this.mobileControls.jump;
+
+    // Горизонтальное движение
+    if (leftPressed) {
       this.setVelocityX(-speed);
       this.setFlipX(true);
-    } else if (this.controls.right.isDown || this.controls.rightAlt?.isDown) {
+    } else if (rightPressed) {
       this.setVelocityX(speed);
       this.setFlipX(false);
     } else {
       this.setVelocityX(0);
     }
 
-    // Прыжок (стрелка вверх, W или пробел)
-    if (
-      (this.controls.up.isDown ||
-        this.controls.upAlt?.isDown ||
-        this.controls.space.isDown) &&
-      this.body!.touching.down
-    ) {
+    // Прыжок
+    if (jumpPressed && this.body!.touching.down) {
       this.jump();
     }
   }

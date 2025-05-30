@@ -100,7 +100,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("whopper", "assets/sprites/whopper.png");
     this.load.image("onion_rings", "assets/sprites/onion_rings.png");
 
-    // Загрузка дополнительных спрайтов игрока (если есть)
+    // // Загрузка дополнительных спрайтов игрока (если есть)
     this.load.image("player_walk", "assets/sprites/player/mario_walk.png");
     this.load.image("player_jump", "assets/sprites/player/mario_jump.png");
     this.load.image("player_damage", "assets/sprites/player/mario_damage.png");
@@ -112,10 +112,27 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("bk_restaurant", "assets/backgrounds/bk_restaurant.png");
 
     // Загрузка звуков
+    console.log("🎵 Загружаем звуки...");
     this.load.audio("jump_sound", "assets/sounds/jump.wav");
     this.load.audio("collect_sound", "assets/sounds/collect.wav");
     this.load.audio("damage_sound", "assets/sounds/damage.wav");
-    this.load.audio("victory_sound", "assets/sounds/victory.wav");
+    console.log("🎵 Загружаем victory_sound из assets/sounds/victory.wav");
+    console.log(
+      "🔍 Полный URL victory_sound:",
+      window.location.origin + "/assets/sounds/victory.wav"
+    );
+
+    // Добавляем cache busting для victory_sound
+    const victoryUrl = `assets/sounds/victory.wav?v=${Date.now()}`;
+    console.log("🔄 Victory URL с cache busting:", victoryUrl);
+    this.load.audio("victory_sound", victoryUrl);
+
+    // Загружаем новый файл для тестирования
+    console.log(
+      "🎵 Загружаем NEW victory_new_sound из assets/sounds/victory_new.wav"
+    );
+    this.load.audio("victory_new_sound", "assets/sounds/victory_new.wav");
+
     this.load.audio("enemy_defeat", "assets/sounds/enemy_defeat.wav");
     this.load.audio("bg_music", "assets/sounds/background_music.mp3");
 
@@ -231,6 +248,28 @@ export class PreloadScene extends Phaser.Scene {
       // Создаем fallback текстуру
       this.createFallbackTexture(file.key);
     });
+
+    // Добавляем обработчики загрузки для отслеживания
+    this.load.on("filecomplete-audio-victory_sound", () => {
+      console.log("✅ victory_sound успешно загружен!");
+
+      // Получаем информацию о загруженном аудио файле
+      const audioCache = this.cache.audio.get("victory_sound");
+      if (audioCache) {
+        console.log("🔍 Информация о victory_sound:", audioCache);
+        console.log("🔍 URL источника:", audioCache.url);
+        console.log(
+          "🔍 Размер буфера:",
+          audioCache.buffer?.byteLength || "неизвестно"
+        );
+      }
+    });
+
+    this.load.on("loaderror", (file: any) => {
+      if (file.key === "victory_sound") {
+        console.error("❌ Ошибка загрузки victory_sound:", file);
+      }
+    });
   }
 
   private updateProgressBar(value: number): void {
@@ -305,9 +344,55 @@ export class PreloadScene extends Phaser.Scene {
     this.loadingText.setText("Загрузка завершена!");
     this.percentText.setText("100%");
 
+    console.log(
+      "🎯 PreloadScene: Все ресурсы загружены, переходим к MenuScene..."
+    );
+    console.log(
+      "🎯 Доступные сцены:",
+      this.scene.manager.scenes.map((s) => s.scene.key)
+    );
+
+    // Добавляем кнопку для прямого перехода к игре
+    const playButton = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 + 100,
+      "НАЧАТЬ ИГРУ",
+      {
+        fontSize: "32px",
+        color: "#FFFFFF",
+        fontFamily: "Arial Bold",
+        backgroundColor: "#D32F2F",
+        padding: { x: 20, y: 10 },
+      }
+    );
+    playButton.setOrigin(0.5);
+    playButton.setInteractive({ useHandCursor: true });
+    playButton.on("pointerdown", () => {
+      console.log("🎮 Прямой переход к игре по кнопке");
+      this.scene.start(SCENES.GAME);
+    });
+
     // Переход к главному меню через 1 секунду
     this.time.delayedCall(1000, () => {
-      this.scene.start(SCENES.MENU);
+      console.log("🎯 Запускаем переход к MenuScene...");
+      try {
+        this.scene.start(SCENES.MENU);
+        console.log("✅ Переход к MenuScene выполнен");
+      } catch (error) {
+        console.error("❌ Ошибка при переходе к MenuScene:", error);
+        // Fallback - переходим сразу к игре
+        this.scene.start(SCENES.GAME);
+      }
+    });
+
+    // Дополнительный fallback - если через 5 секунд ничего не произошло, переходим к игре
+    this.time.delayedCall(5000, () => {
+      if (this.scene.isActive()) {
+        console.log(
+          "⚠️ PreloadScene все еще активна через 5 секунд, принудительно переходим к игре"
+        );
+        this.scene.start(SCENES.GAME);
+      }
     });
   }
 
@@ -498,7 +583,21 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Эта функция вызывается после preload
-    // Здесь можно добавить дополнительную логику инициализации
+    // Настройка загрузочного экрана
+    this.setupLoadingEvents();
+
+    // Добавляем обработчики загрузки для отслеживания
+    this.load.on("filecomplete-audio-victory_sound", () => {
+      console.log("✅ victory_sound успешно загружен!");
+    });
+
+    this.load.on("loaderror", (file: any) => {
+      if (file.key === "victory_sound") {
+        console.error("❌ Ошибка загрузки victory_sound:", file);
+      }
+    });
+
+    // Загрузка ресурсов
+    this.loadAssets();
   }
 }

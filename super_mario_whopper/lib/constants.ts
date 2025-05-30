@@ -84,7 +84,7 @@ export const SOUNDS = {
   JUMP: "jump_sound",
   COLLECT: "collect_sound",
   DAMAGE: "damage_sound",
-  VICTORY: "victory_sound",
+  VICTORY: "victory_new_sound",
   BACKGROUND: "bg_music",
   ENEMY_DEFEAT: "enemy_defeat",
 } as const;
@@ -97,6 +97,7 @@ export const SCENES = {
   PAUSE: "PauseScene",
   GAME_OVER: "GameOverScene",
   VICTORY: "VictoryScene",
+  MOBILE_CONTROLS: "MobileControlsScene",
 } as const;
 
 export const PHYSICS = {

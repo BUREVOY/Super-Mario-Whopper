@@ -1,0 +1,144 @@
+services:
+  # =========================================
+  # Сервис для разработки
+  # =========================================
+  super-mario-whopper-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: super-mario-whopper-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    volumes:
+      # Bind mount для горячей перезагрузки
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - burger-king-network
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+            - .git/
+        - action: rebuild
+          path: package.json
+
+  # =========================================
+  # Сервис для production
+  # =========================================
+  super-mario-whopper-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: super-mario-whopper-prod
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - burger-king-network
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =========================================
+  # Nginx для статической раздачи (опционально)
+  # =========================================
+  super-mario-whopper-nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: nginx
+    container_name: super-mario-whopper-nginx
+    ports:
+      - "8080:8080"
+    networks:
+      - burger-king-network
+    restart: unless-stopped
+    profiles:
+      - nginx
+
+  # =========================================
+  # Redis для кэширования (опционально)
+  # =========================================
+  redis:
+    image: redis:7-alpine
+    container_name: super-mario-whopper-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - burger-king-network
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    profiles:
+      - cache
+    command: redis-server --appendonly yes
+
+  # =========================================
+  # Reverse Proxy (опционально)
+  # =========================================
+  traefik:
+    image: traefik:v3.0
+    container_name: super-mario-whopper-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080" # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - burger-king-network
+    restart: unless-stopped
+    profiles:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+# =========================================
+# Сети
+# =========================================
+networks:
+  burger-king-network:
+    driver: bridge
+    name: burger-king-network
+
+# =========================================
+# Тома
+# =========================================
+volumes:
+  redis-data:
+    driver: local
+    name: super-mario-whopper-redis-data

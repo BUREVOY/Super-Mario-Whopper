@@ -1,0 +1,43 @@
+{
+  "name": "Super Mario Whopper",
+  "short_name": "Mario Whopper",
+  "description": "Платформер в стиле Burger King для мобильных устройств",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape-primary",
+  "theme_color": "#D32F2F",
+  "background_color": "#D32F2F",
+  "categories": ["games", "entertainment"],
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "scope": "/",
+  "id": "super-mario-whopper"
+}
