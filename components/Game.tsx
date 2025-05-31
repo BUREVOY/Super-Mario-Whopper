@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as Phaser from "phaser";
-import { GAME_CONFIG, VIEWPORT_UTILS } from "@/lib/constants";
+import { GAME_CONFIG } from "@/lib/constants";
 import { PreloadScene } from "@/lib/game/scenes/PreloadScene";
 import { MenuScene } from "@/lib/game/scenes/MenuScene";
 import { GameScene } from "@/lib/game/scenes/GameScene";
@@ -20,22 +20,14 @@ export default function Game({ className = "" }: GameProps) {
   const [isGameLoaded, setIsGameLoaded] = useState(false);
   const [gameError, setGameError] = useState<string | null>(null);
 
-  // Функция для получения оптимальных размеров игры
-  const getOptimalGameSize = () => {
-    const { width, height } = VIEWPORT_UTILS.getGameDimensions();
-    return { width, height };
-  };
-
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
 
     try {
-      const { width, height } = getOptimalGameSize();
-
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
-        width,
-        height,
+        width: GAME_CONFIG.WIDTH,
+        height: GAME_CONFIG.HEIGHT,
         parent: gameRef.current,
         backgroundColor: GAME_CONFIG.BACKGROUND_COLOR,
         physics: {
@@ -54,7 +46,7 @@ export default function Game({ className = "" }: GameProps) {
           MobileControlsScene,
         ],
         scale: {
-          mode: Phaser.Scale.RESIZE,
+          mode: Phaser.Scale.FIT,
           autoCenter: Phaser.Scale.CENTER_BOTH,
           min: {
             width: 320,
@@ -62,11 +54,8 @@ export default function Game({ className = "" }: GameProps) {
           },
           max: {
             width: 1920,
-            height: 1920, // Увеличиваем максимальную высоту для вертикального формата
+            height: 1080,
           },
-          // Автоматическое масштабирование под контейнер
-          expandParent: true,
-          autoRound: true,
         },
         input: {
           touch: {
@@ -95,24 +84,14 @@ export default function Game({ className = "" }: GameProps) {
 
       phaserGameRef.current = new Phaser.Game(config);
 
-      // Обработка изменения размера экрана и ориентации
+      // Обработка изменения размера экрана для мобильных устройств
       const handleResize = () => {
         if (phaserGameRef.current) {
           const game = phaserGameRef.current;
-
-          // Обновляем размеры игры
-          const container = gameRef.current;
-          if (container) {
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-
-            game.scale.resize(containerWidth, containerHeight);
-          }
-
-          // Обновляем мобильные элементы управления
           const mobileControlsScene = game.scene.getScene(
             "MobileControlsScene"
           ) as unknown;
+
           if (
             mobileControlsScene &&
             typeof mobileControlsScene === "object" &&
@@ -151,7 +130,6 @@ export default function Game({ className = "" }: GameProps) {
       phaserGameRef.current.events.on("ready", () => {
         console.log("🍔 Super Mario Whopper загружен!");
         setIsGameLoaded(true);
-        handleResize(); // Применяем правильные размеры после загрузки
       });
 
       phaserGameRef.current.events.on("destroy", () => {
@@ -161,7 +139,7 @@ export default function Game({ className = "" }: GameProps) {
 
       // Дополнительная проверка - если игра создана, считаем её загруженной
       setTimeout(() => {
-        if (phaserGameRef.current) {
+        if (phaserGameRef.current && !isGameLoaded) {
           console.log("🎮 Принудительно устанавливаем флаг загрузки игры");
           setIsGameLoaded(true);
         }
@@ -185,9 +163,6 @@ export default function Game({ className = "" }: GameProps) {
             console.log("❌ Canvas не найден в контейнере");
           }
         }
-
-        // Применяем размеры после загрузки
-        handleResize();
       }, 2000); // Через 2 секунды после создания
 
       // Cleanup функция
@@ -210,7 +185,7 @@ export default function Game({ className = "" }: GameProps) {
         error instanceof Error ? error.message : "Неизвестная ошибка"
       );
     }
-  }, []);
+  }, [isGameLoaded]);
 
   // Обработка изменения размера окна
   useEffect(() => {
@@ -263,24 +238,18 @@ export default function Game({ className = "" }: GameProps) {
       {/* Контейнер для игры */}
       <div
         ref={gameRef}
-        className="w-full h-full min-h-[600px] overflow-hidden relative"
+        className="w-full h-full min-h-[600px] rounded-lg overflow-hidden shadow-lg relative"
         style={{
-          background: VIEWPORT_UTILS.isMobile()
-            ? "#D32F2F"
-            : "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
-          border: VIEWPORT_UTILS.isMobile() ? "none" : "4px solid #8B4513",
-          borderRadius: VIEWPORT_UTILS.isMobile() ? "0" : "8px",
-          boxShadow: VIEWPORT_UTILS.isMobile()
-            ? "none"
-            : "0 4px 6px rgba(0, 0, 0, 0.1)",
+          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+          border: "4px solid #8B4513",
           display: "block",
           position: "relative",
           zIndex: 1,
         }}
       />
 
-      {/* Информация об управлении - только на десктопе */}
-      {!VIEWPORT_UTILS.isMobile() && isGameLoaded && (
+      {/* Информация об управлении */}
+      {isGameLoaded && (
         <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-lg text-sm">
           <div className="font-bold mb-1">🎮 Управление:</div>
           <div>← → Движение</div>
@@ -289,40 +258,36 @@ export default function Game({ className = "" }: GameProps) {
         </div>
       )}
 
-      {/* Кнопка отладки - только для разработки и только на десктопе */}
-      {process.env.NODE_ENV === "development" && !VIEWPORT_UTILS.isMobile() && (
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => {
-              console.log("🔧 Принудительный показ игры");
-              setIsGameLoaded(true);
+      {/* Кнопка отладки для принудительного показа игры */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={() => {
+            console.log("🔧 Принудительный показ игры");
+            setIsGameLoaded(true);
 
-              if (gameRef.current) {
-                const canvas = gameRef.current.querySelector("canvas");
-                if (canvas) {
-                  canvas.style.display = "block";
-                  canvas.style.visibility = "visible";
-                  canvas.style.opacity = "1";
-                  canvas.style.zIndex = "10";
-                  console.log("🔧 Canvas принудительно показан");
-                }
+            if (gameRef.current) {
+              const canvas = gameRef.current.querySelector("canvas");
+              if (canvas) {
+                canvas.style.display = "block";
+                canvas.style.visibility = "visible";
+                canvas.style.opacity = "1";
+                canvas.style.zIndex = "10";
+                console.log("🔧 Canvas принудительно показан");
               }
+            }
 
-              if (phaserGameRef.current) {
-                console.log(
-                  "🔧 Текущая сцена:",
-                  phaserGameRef.current.scene
-                    .getScenes()
-                    .map((s) => s.scene.key)
-                );
-              }
-            }}
-            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          >
-            🔧 Показать игру
-          </button>
-        </div>
-      )}
+            if (phaserGameRef.current) {
+              console.log(
+                "🔧 Текущая сцена:",
+                phaserGameRef.current.scene.getScenes().map((s) => s.scene.key)
+              );
+            }
+          }}
+          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+        >
+          🔧 Показать игру
+        </button>
+      </div>
     </div>
   );
 }

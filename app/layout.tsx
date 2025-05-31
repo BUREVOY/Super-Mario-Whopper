@@ -35,8 +35,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#D32F2F",
-  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -52,11 +50,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Super Mario Whopper" />
-        <meta
-          name="apple-mobile-web-app-orientations"
-          content="portrait landscape"
-        />
-        <meta name="screen-orientation" content="any" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <link
           rel="icon"

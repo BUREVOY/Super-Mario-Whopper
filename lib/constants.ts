@@ -2,8 +2,6 @@
 export const GAME_CONFIG = {
   WIDTH: 1024,
   HEIGHT: 768,
-  PORTRAIT_WIDTH: 480,
-  PORTRAIT_HEIGHT: 854,
   GRAVITY: 800,
   BACKGROUND_COLOR: "#D32F2F", // Фирменный красный BK
 } as const;
@@ -109,60 +107,11 @@ export const PHYSICS = {
     width: 3200, // Ширина уровня
     height: 768,
   },
-  PORTRAIT_WORLD_BOUNDS: {
-    x: 0,
-    y: 0,
-    width: 1600, // Уменьшенная ширина для вертикального формата
-    height: 1200, // Увеличенная высота для вертикального формата
-  },
   COLLISION_CATEGORIES: {
     PLAYER: 0x0001,
     ENEMY: 0x0002,
     PLATFORM: 0x0004,
     POWER_UP: 0x0008,
     PROJECTILE: 0x0010,
-  },
-} as const;
-
-export const VIEWPORT_UTILS = {
-  isPortrait: () =>
-    typeof window !== "undefined" && window.innerHeight > window.innerWidth,
-  isLandscape: () =>
-    typeof window !== "undefined" && window.innerWidth > window.innerHeight,
-  isMobile: () => typeof window !== "undefined" && window.innerWidth <= 768,
-  getGameDimensions: () => {
-    if (typeof window === "undefined") {
-      // Возвращаем размеры по умолчанию для SSR
-      return { width: GAME_CONFIG.WIDTH, height: GAME_CONFIG.HEIGHT };
-    }
-
-    const isPortrait = window.innerHeight > window.innerWidth;
-    const isMobile = window.innerWidth <= 768;
-
-    if (isMobile) {
-      return isPortrait
-        ? {
-            width: GAME_CONFIG.PORTRAIT_WIDTH,
-            height: GAME_CONFIG.PORTRAIT_HEIGHT,
-          }
-        : { width: GAME_CONFIG.WIDTH, height: GAME_CONFIG.HEIGHT };
-    }
-
-    return { width: GAME_CONFIG.WIDTH, height: GAME_CONFIG.HEIGHT };
-  },
-  getWorldBounds: () => {
-    if (typeof window === "undefined") {
-      // Возвращаем границы по умолчанию для SSR
-      return PHYSICS.WORLD_BOUNDS;
-    }
-
-    const isPortrait = window.innerHeight > window.innerWidth;
-    const isMobile = window.innerWidth <= 768;
-
-    if (isMobile && isPortrait) {
-      return PHYSICS.PORTRAIT_WORLD_BOUNDS;
-    }
-
-    return PHYSICS.WORLD_BOUNDS;
   },
 } as const;

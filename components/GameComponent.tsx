@@ -1,115 +1,143 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
-import GameStats from "./GameStats";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Динамическая загрузка игры для предотвращения SSR проблем
-const Game = dynamic(() => import("./Game"), { ssr: false });
+import { useEffect, useRef } from "react";
+import Phaser from "phaser";
+import { GAME_CONFIG } from "../lib/constants";
+import { PreloadScene } from "../lib/game/scenes/PreloadScene";
+import { MenuScene } from "../lib/game/scenes/MenuScene";
+import { GameScene } from "../lib/game/scenes/GameScene";
 
 export default function GameComponent() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const gameRef = useRef<Phaser.Game | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Устанавливаем что мы на клиенте
-    setIsClient(true);
+    if (
+      typeof window !== "undefined" &&
+      containerRef.current &&
+      !gameRef.current
+    ) {
+      // Конфигурация игры Phaser
+      const config: Phaser.Types.Core.GameConfig = {
+        type: Phaser.AUTO,
+        width: GAME_CONFIG.WIDTH,
+        height: GAME_CONFIG.HEIGHT,
+        parent: containerRef.current,
+        backgroundColor: GAME_CONFIG.BACKGROUND_COLOR,
+        physics: {
+          default: "arcade",
+          arcade: {
+            gravity: { x: 0, y: GAME_CONFIG.GRAVITY },
+            debug: false, // Установить в true для отладки
+          },
+        },
+        scene: [PreloadScene, MenuScene, GameScene],
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          min: {
+            width: 800,
+            height: 600,
+          },
+          max: {
+            width: 1600,
+            height: 1200,
+          },
+        },
+        audio: {
+          disableWebAudio: false,
+        },
+        input: {
+          keyboard: true,
+          mouse: true,
+          touch: true,
+        },
+        render: {
+          antialias: true,
+          pixelArt: false,
+          roundPixels: false,
+        },
+      };
 
-    const checkMobile = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-    };
+      // Создание игры
+      gameRef.current = new Phaser.Game(config);
 
-    checkMobile();
+      // Обработка ошибок
+      gameRef.current.events.on("error", (error: Error) => {
+        console.error("Phaser Game Error:", error);
+      });
+    }
 
-    const handleResize = () => {
-      checkMobile();
-    };
-
-    const handleOrientationChange = () => {
-      setTimeout(checkMobile, 100);
-    };
-
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", handleOrientationChange);
-
+    // Cleanup функция
     return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleOrientationChange);
+      if (gameRef.current) {
+        gameRef.current.destroy(true);
+        gameRef.current = null;
+      }
     };
   }, []);
 
-  // Показываем загрузку пока не определили клиент
-  if (!isClient) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center bg-red-600">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            🍔 Super Mario Whopper
-          </h2>
-          <p className="text-white/90">Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
+  // Обработка изменения размера окна
+  useEffect(() => {
+    const handleResize = () => {
+      if (gameRef.current) {
+        gameRef.current.scale.refresh();
+      }
+    };
 
-  // Мобильная версия - только игра
-  if (isMobile) {
-    return (
-      <div className="w-full h-screen overflow-hidden bg-red-600 flex items-center justify-center">
-        <div className="game-container w-full h-full">
-          <Game className="w-full h-full" />
-        </div>
-      </div>
-    );
-  }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // Десктопная версия с полным UI
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-600 to-orange-600 flex flex-col">
-      {/* Информационная панель - только на десктопе */}
-      <div className="bg-white/10 backdrop-blur-sm p-4">
-        <div className="container mx-auto">
-          <h1 className="text-2xl font-bold text-white mb-2">
-            🍔 Super Mario Whopper
-          </h1>
-          <p className="text-white/90">
-            Платформер в стиле Burger King! Поддерживает как горизонтальный, так
-            и вертикальный режим на мобильных устройствах.
-          </p>
-        </div>
-      </div>
+    <div className="game-container">
+      <div
+        ref={containerRef}
+        className="game-canvas"
+        style={{
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background:
+            "linear-gradient(135deg, #D32F2F 0%, #FF9800 50%, #FFC107 100%)",
+        }}
+      />
 
-      {/* Игровой контейнер */}
-      <div className="flex-1 relative">
-        <div className="game-container w-full h-full">
-          <Game className="w-full h-full" />
-        </div>
-      </div>
+      {/* Стили для игры */}
+      <style jsx>{`
+        .game-container {
+          width: 100%;
+          height: 100vh;
+          overflow: hidden;
+          position: relative;
+        }
 
-      {/* Статистика игры - только на десктопе в боковой панели */}
-      <div className="hidden lg:block absolute right-4 top-1/2 transform -translate-y-1/2 w-80">
-        <Card className="bg-white/10 backdrop-blur-md border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">Статистика игры</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GameStats />
-          </CardContent>
-        </Card>
-      </div>
+        .game-canvas {
+          position: relative;
+        }
 
-      {/* Инструкции управления - только на десктопе */}
-      <div className="bg-black/20 backdrop-blur-sm p-3">
-        <div className="container mx-auto text-center">
-          <p className="text-white/90 text-sm">
-            <span className="font-semibold">Управление:</span> ← → движение • ↑
-            или Пробел прыжок • P пауза • R перезапуск
-          </p>
-        </div>
-      </div>
+        .game-canvas canvas {
+          border-radius: 8px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Адаптивность для мобильных устройств */
+        @media (max-width: 768px) {
+          .game-canvas canvas {
+            border-radius: 0;
+          }
+        }
+
+        /* Полноэкранный режим */
+        .game-container.fullscreen {
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 9999;
+        }
+      `}</style>
     </div>
   );
 }
