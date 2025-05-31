@@ -296,25 +296,109 @@ export class MobileControlsScene extends Phaser.Scene {
   public resize(width: number, height: number): void {
     if (!this.isMobileDevice()) return;
 
-    // Обновляем позиции элементов управления
-    const buttonSize = 80;
-    const margin = 20;
+    // Определяем ориентацию
+    const isPortrait = height > width;
 
-    // Кнопка прыжка
-    this.jumpButton.setPosition(
-      width - buttonSize / 2 - margin,
-      height - buttonSize / 2 - margin
+    // Адаптивные размеры в зависимости от ориентации
+    const buttonSize = isPortrait ? 90 : 80; // Больше кнопки в портретном режиме
+    const margin = isPortrait ? 25 : 20;
+    const baseSize = isPortrait ? 110 : 100; // Больше джойстик в портретном режиме
+
+    // Кнопка прыжка - позиционирование в зависимости от ориентации
+    if (isPortrait) {
+      // В портретном режиме - справа снизу, но выше чем в ландшафтном
+      this.jumpButton.setPosition(
+        width - buttonSize / 2 - margin,
+        height - buttonSize / 2 - margin - 50 // Немного выше для удобства
+      );
+    } else {
+      // В ландшафтном режиме - стандартное позиционирование
+      this.jumpButton.setPosition(
+        width - buttonSize / 2 - margin,
+        height - buttonSize / 2 - margin
+      );
+    }
+
+    // Кнопка паузы - адаптивное позиционирование
+    const pauseSize = isPortrait ? 35 : 30;
+    const pauseMargin = isPortrait ? 60 : 50;
+    this.pauseButton.setPosition(width - pauseMargin, pauseMargin);
+
+    // Обновляем размер кнопки паузы если нужно
+    this.pauseButton.clear();
+    this.pauseButton.fillStyle(
+      parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
+      0.7
     );
+    this.pauseButton.fillCircle(0, 0, pauseSize);
+    this.pauseButton.lineStyle(3, parseInt(COLORS.WHITE.replace("#", ""), 16));
+    this.pauseButton.strokeCircle(0, 0, pauseSize);
 
-    // Кнопка паузы
-    this.pauseButton.setPosition(width - 50, 50);
+    // Джойстик - адаптивное позиционирование
+    if (isPortrait) {
+      // В портретном режиме - слева снизу, но выше
+      this.joystickBase.setPosition(
+        margin + baseSize / 2,
+        height - margin - baseSize / 2 - 50 // Выше для удобства
+      );
+    } else {
+      // В ландшафтном режиме - стандартное позиционирование
+      this.joystickBase.setPosition(
+        margin + baseSize / 2,
+        height - margin - baseSize / 2
+      );
+    }
 
-    // Джойстик
-    const baseSize = 100;
-    this.joystickBase.setPosition(
-      margin + baseSize / 2,
-      height - margin - baseSize / 2
+    // Обновляем размеры джойстика если изменились
+    this.joystickBase.clear();
+    this.joystickBase.fillStyle(
+      parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
+      0.5
     );
+    this.joystickBase.fillCircle(0, 0, baseSize / 2);
+    this.joystickBase.lineStyle(
+      4,
+      parseInt(COLORS.WHITE.replace("#", ""), 16),
+      0.8
+    );
+    this.joystickBase.strokeCircle(0, 0, baseSize / 2);
+
+    // Обновляем размеры кнопки прыжка
+    this.jumpButton.clear();
+    this.jumpButton.fillStyle(
+      parseInt(COLORS.BK_RED.replace("#", ""), 16),
+      0.7
+    );
+    this.jumpButton.fillCircle(0, 0, buttonSize / 2);
+    this.jumpButton.lineStyle(4, parseInt(COLORS.WHITE.replace("#", ""), 16));
+    this.jumpButton.strokeCircle(0, 0, buttonSize / 2);
+
+    // Возвращаем ручку джойстика в центр
     this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
+
+    // Пересоздаем интерактивные области с новыми размерами
+    this.jumpButton.removeInteractive();
+    this.jumpButton.setInteractive(
+      new Phaser.Geom.Circle(0, 0, buttonSize / 2),
+      Phaser.Geom.Circle.Contains
+    );
+
+    this.pauseButton.removeInteractive();
+    this.pauseButton.setInteractive(
+      new Phaser.Geom.Circle(0, 0, pauseSize),
+      Phaser.Geom.Circle.Contains
+    );
+
+    this.joystickBase.removeInteractive();
+    this.joystickBase.setInteractive(
+      new Phaser.Geom.Circle(0, 0, baseSize / 2),
+      Phaser.Geom.Circle.Contains
+    );
+
+    console.log(
+      `🎮 Мобильные элементы управления обновлены для ${
+        isPortrait ? "портретного" : "ландшафтного"
+      } режима`
+    );
   }
 }

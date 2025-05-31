@@ -20,55 +20,82 @@ const Game = dynamic(() => import("@/components/Game"), {
   ),
 });
 
-// Компонент для сообщения об ориентации
-function OrientationMessage() {
-  const [showMessage, setShowMessage] = useState(false);
+export default function HomePage() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    const checkOrientation = () => {
-      const isMobile =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        ) || "ontouchstart" in window;
+    // Устанавливаем что мы на клиенте
+    setIsClient(true);
 
-      const isPortrait = window.innerHeight > window.innerWidth;
-      setShowMessage(isMobile && isPortrait);
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
     };
 
-    checkOrientation();
-    window.addEventListener("resize", checkOrientation);
+    checkMobile();
+
+    const handleResize = () => {
+      checkMobile();
+    };
+
+    window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", () => {
-      setTimeout(checkOrientation, 100);
+      setTimeout(checkMobile, 100);
     });
 
     return () => {
-      window.removeEventListener("resize", checkOrientation);
-      window.removeEventListener("orientationchange", checkOrientation);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", checkMobile);
     };
   }, []);
 
-  if (!showMessage) return null;
+  // Показываем загрузку пока не определили клиент
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center w-full h-screen bg-red-600">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            🍔 Super Mario Whopper
+          </h2>
+          <p className="text-white/90">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="orientation-message">
-      <h2>🍔 Super Mario Whopper</h2>
-      <p>Для лучшего игрового опыта поверните устройство в ландшафтный режим</p>
-      <div className="rotate-icon">📱</div>
-      <p style={{ fontSize: "14px", marginTop: "20px", opacity: 0.8 }}>
-        Поверните телефон горизонтально
-      </p>
-    </div>
-  );
-}
+  // Мобильная версия - только игра по центру
+  if (isMobile) {
+    return (
+      <>
+        <AchievementNotification />
+        <main className="w-full h-screen overflow-hidden bg-red-600 flex items-center justify-center">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center w-full h-full bg-red-600">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    🍔 Super Mario Whopper
+                  </h2>
+                  <p className="text-white/90">Загрузка...</p>
+                </div>
+              </div>
+            }
+          >
+            <Game className="w-full h-full" />
+          </Suspense>
+        </main>
+      </>
+    );
+  }
 
-export default function HomePage() {
+  // Десктопная версия с полным интерфейсом
   return (
     <>
-      <OrientationMessage />
-      <main className="min-h-screen bg-gradient-to-br from-yellow-300 via-orange-300 to-red-400 p-4 game-container">
-        {/* Уведомления о достижениях */}
-        <AchievementNotification />
-
+      <AchievementNotification />
+      <main className="min-h-screen bg-gradient-to-br from-yellow-300 via-orange-300 to-red-400 p-4">
         <div className="container mx-auto max-w-6xl">
           {/* Заголовок */}
           <header className="text-center mb-8">
@@ -78,7 +105,7 @@ export default function HomePage() {
             <p className="text-xl text-red-700 font-semibold">
               Приключения в королевстве Burger King!
             </p>
-            <div className="flex justify-center items-center gap-4 mt-4">
+            <div className="flex justify-center items-center gap-4 mt-4 flex-wrap">
               <div className="bg-red-600 text-white px-4 py-2 rounded-full font-bold">
                 👑 Королевское качество
               </div>
@@ -86,31 +113,30 @@ export default function HomePage() {
                 🍟 Вкусное приключение
               </div>
               <div className="bg-green-600 text-white px-4 py-2 rounded-full font-bold">
-                📱 Мобильная поддержка
+                📱 Полная мобильная поддержка
               </div>
             </div>
           </header>
 
-          {/* Игра */}
-          <div className="bg-white rounded-xl shadow-2xl p-6 mb-8 no-select">
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center min-h-[600px] bg-yellow-100 rounded-lg">
-                  <div className="text-center">
-                    <div className="animate-pulse text-6xl mb-4">🍔</div>
-                    <p className="text-red-600 font-semibold">
-                      Подготовка игры...
-                    </p>
+          {/* Игра - центрированная */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white rounded-xl shadow-2xl p-6 no-select max-w-5xl w-full">
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center min-h-[600px] bg-yellow-100 rounded-lg">
+                    <div className="text-center">
+                      <div className="animate-pulse text-6xl mb-4">🍔</div>
+                      <p className="text-red-600 font-semibold">
+                        Подготовка игры...
+                      </p>
+                    </div>
                   </div>
-                </div>
-              }
-            >
-              <Game className="w-full" />
-            </Suspense>
+                }
+              >
+                <Game className="w-full" />
+              </Suspense>
+            </div>
           </div>
-
-          {/* Статистика игры */}
-          {/* <GameStats className="mb-8" /> */}
 
           {/* Информация об игре */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -130,6 +156,10 @@ export default function HomePage() {
                 <li className="flex items-center">
                   <span className="text-red-600 mr-2">ESC</span>
                   Пауза
+                </li>
+                <li className="flex items-center">
+                  <span className="text-red-600 mr-2">📱</span>
+                  На мобильных: виртуальный джойстик
                 </li>
                 <li className="flex items-center">
                   <span className="text-red-600 mr-2">🍔</span>
@@ -152,6 +182,10 @@ export default function HomePage() {
                   Враги в тематике фастфуда
                 </li>
                 <li className="flex items-center">
+                  <span className="text-yellow-500 mr-2">📱</span>
+                  Поддержка вертикального и горизонтального формата
+                </li>
+                <li className="flex items-center">
                   <span className="text-yellow-500 mr-2">👑</span>
                   Королевские бонусы и способности
                 </li>
@@ -162,16 +196,6 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
-
-          {/* Футер */}
-          <footer className="text-center text-red-700">
-            <p className="text-lg font-semibold mb-2">
-              Создано с ❤️ для любителей платформеров и вкусной еды
-            </p>
-            <p className="text-sm opacity-75">
-              Super Mario Whopper © 2024 | Powered by Phaser 3 & Next.js
-            </p>
-          </footer>
         </div>
       </main>
     </>

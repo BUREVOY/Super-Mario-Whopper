@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { SCENES, COLORS, GAME_CONFIG } from "../../constants";
+import { SCENES, COLORS, GAME_CONFIG, VIEWPORT_UTILS } from "../../constants";
 
 export class MenuScene extends Phaser.Scene {
   private startButton!: Phaser.GameObjects.Text;
@@ -104,20 +104,34 @@ export class MenuScene extends Phaser.Scene {
   private createLogo(): void {
     console.log("🎮 MenuScene: Создание логотипа...");
 
+    // Определяем размеры для адаптивности
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const isMobile = VIEWPORT_UTILS.isMobile();
+    const isPortrait = VIEWPORT_UTILS.isPortrait();
+
+    // Адаптивные размеры и позиции
+    const logoSize = isMobile ? (isPortrait ? "36px" : "32px") : "64px";
+    const subtitleSize = isMobile ? (isPortrait ? "18px" : "16px") : "24px";
+    const logoY = isMobile ? (isPortrait ? height * 0.15 : height * 0.12) : 150;
+    const subtitleY = isMobile
+      ? isPortrait
+        ? height * 0.22
+        : height * 0.2
+      : 220;
+    const crownY = isMobile ? (isPortrait ? height * 0.1 : height * 0.08) : 100;
+    const crownSize = isMobile ? (isPortrait ? "32px" : "28px") : "48px";
+
     try {
       // Главный логотип игры
-      this.logo = this.add.text(
-        GAME_CONFIG.WIDTH / 2,
-        150,
-        "SUPER MARIO WHOPPER",
-        {
-          fontSize: "64px",
-          color: COLORS.BK_YELLOW,
-          fontFamily: "Arial Black",
-          stroke: COLORS.BLACK,
-          strokeThickness: 6,
-        }
-      );
+      this.logo = this.add.text(width / 2, logoY, "SUPER MARIO WHOPPER", {
+        fontSize: logoSize,
+        color: COLORS.BK_YELLOW,
+        fontFamily: "Arial Black",
+        stroke: COLORS.BLACK,
+        strokeThickness: isMobile ? 4 : 6,
+        align: "center",
+      });
       this.logo.setOrigin(0.5);
 
       console.log("✅ MenuScene: Логотип создан успешно");
@@ -127,22 +141,23 @@ export class MenuScene extends Phaser.Scene {
 
     // Подзаголовок
     this.subtitle = this.add.text(
-      GAME_CONFIG.WIDTH / 2,
-      220,
+      width / 2,
+      subtitleY,
       "Платформер в стиле Burger King",
       {
-        fontSize: "24px",
+        fontSize: subtitleSize,
         color: COLORS.WHITE,
         fontFamily: "Arial",
         stroke: COLORS.BLACK,
         strokeThickness: 2,
+        align: "center",
       }
     );
     this.subtitle.setOrigin(0.5);
 
     // Добавляем корону над логотипом
-    const crown = this.add.text(GAME_CONFIG.WIDTH / 2, 100, "👑", {
-      fontSize: "48px",
+    const crown = this.add.text(width / 2, crownY, "👑", {
+      fontSize: crownSize,
     });
     crown.setOrigin(0.5);
   }
@@ -150,107 +165,125 @@ export class MenuScene extends Phaser.Scene {
   private createMenu(): void {
     console.log("🎮 MenuScene: Создание меню...");
 
+    // Определяем размеры для адаптивности
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const isMobile = VIEWPORT_UTILS.isMobile();
+    const isPortrait = VIEWPORT_UTILS.isPortrait();
+
+    // Адаптивные размеры и позиции
+    const buttonSize = isMobile ? (isPortrait ? "24px" : "22px") : "32px";
+    const buttonSpacing = isMobile ? (isPortrait ? 60 : 50) : 80;
+    const startButtonY = isMobile
+      ? isPortrait
+        ? height * 0.35
+        : height * 0.32
+      : 320;
+    const instructionsButtonY = startButtonY + buttonSpacing;
+    const creditsButtonY = instructionsButtonY + buttonSpacing;
+    const orderButtonY = creditsButtonY + buttonSpacing * 1.5;
+
     const buttonStyle = {
-      fontSize: "32px",
+      fontSize: buttonSize,
       color: COLORS.WHITE,
       fontFamily: "Arial Bold",
       backgroundColor: COLORS.BK_RED,
-      padding: { x: 20, y: 10 },
+      padding: { x: isMobile ? 15 : 20, y: isMobile ? 8 : 10 },
       stroke: COLORS.BLACK,
       strokeThickness: 2,
+      align: "center",
     };
 
     const hoverStyle = {
-      fontSize: "32px",
+      fontSize: buttonSize,
       color: COLORS.BK_YELLOW,
       fontFamily: "Arial Bold",
       backgroundColor: COLORS.BK_BROWN,
-      padding: { x: 20, y: 10 },
+      padding: { x: isMobile ? 15 : 20, y: isMobile ? 8 : 10 },
       stroke: COLORS.BLACK,
       strokeThickness: 2,
+      align: "center",
     };
 
     // Специальный стиль для кнопки заказа
     const orderButtonStyle = {
-      fontSize: "32px",
+      fontSize: buttonSize,
       color: COLORS.WHITE,
       fontFamily: "Arial Bold",
       backgroundColor: COLORS.BK_ORANGE,
-      padding: { x: 20, y: 10 },
+      padding: { x: isMobile ? 15 : 20, y: isMobile ? 8 : 10 },
       stroke: COLORS.BLACK,
       strokeThickness: 2,
+      align: "center",
     };
 
     const orderHoverStyle = {
-      fontSize: "32px",
+      fontSize: buttonSize,
       color: COLORS.BK_YELLOW,
       fontFamily: "Arial Bold",
       backgroundColor: COLORS.BK_RED,
-      padding: { x: 20, y: 10 },
+      padding: { x: isMobile ? 15 : 20, y: isMobile ? 8 : 10 },
       stroke: COLORS.BLACK,
       strokeThickness: 2,
+      align: "center",
     };
 
     try {
       // Кнопка "Начать игру"
       this.startButton = this.add.text(
-        GAME_CONFIG.WIDTH / 2,
-        320,
+        width / 2,
+        startButtonY,
         "НАЧАТЬ ИГРУ",
         buttonStyle
       );
       this.startButton.setOrigin(0.5);
-      this.startButton.setInteractive({ useHandCursor: true });
-
-      // Кнопка "Пройти опрос" - новая кнопка
-      const orderButton = this.add.text(
-        GAME_CONFIG.WIDTH / 2,
-        380,
-        "ПРОЙТИ ОПРОС",
-        orderButtonStyle
-      );
-      orderButton.setOrigin(0.5);
-      orderButton.setInteractive({ useHandCursor: true });
-
-      // Кнопка "Инструкции"
-      this.instructionsButton = this.add.text(
-        GAME_CONFIG.WIDTH / 2,
-        440,
-        "ИНСТРУКЦИИ",
-        buttonStyle
-      );
-      this.instructionsButton.setOrigin(0.5);
-      this.instructionsButton.setInteractive({ useHandCursor: true });
-
-      // Кнопка "Авторы"
-      this.creditsButton = this.add.text(
-        GAME_CONFIG.WIDTH / 2,
-        500,
-        "АВТОРЫ",
-        buttonStyle
-      );
-      this.creditsButton.setOrigin(0.5);
-      this.creditsButton.setInteractive({ useHandCursor: true });
-
-      // Настройка интерактивности кнопок
       this.setupButtonEvents(this.startButton, hoverStyle, buttonStyle, () =>
         this.startGame()
       );
-      this.setupButtonEvents(
-        orderButton,
-        orderHoverStyle,
-        orderButtonStyle,
-        () => this.openBurgerKingWebsite()
+
+      // Кнопка "Инструкции"
+      this.instructionsButton = this.add.text(
+        width / 2,
+        instructionsButtonY,
+        "КАК ИГРАТЬ",
+        buttonStyle
       );
+      this.instructionsButton.setOrigin(0.5);
       this.setupButtonEvents(
         this.instructionsButton,
         hoverStyle,
         buttonStyle,
         () => this.showInstructions()
       );
+
+      // Кнопка "Создатели"
+      this.creditsButton = this.add.text(
+        width / 2,
+        creditsButtonY,
+        "О ИГРЕ",
+        buttonStyle
+      );
+      this.creditsButton.setOrigin(0.5);
       this.setupButtonEvents(this.creditsButton, hoverStyle, buttonStyle, () =>
         this.showCredits()
       );
+
+      // Специальная кнопка "Заказать Whopper" - только на десктопе
+      if (!isMobile) {
+        const orderButton = this.add.text(
+          width / 2,
+          orderButtonY,
+          "🍔 ЗАКАЗАТЬ WHOPPER",
+          orderButtonStyle
+        );
+        orderButton.setOrigin(0.5);
+        this.setupButtonEvents(
+          orderButton,
+          orderHoverStyle,
+          orderButtonStyle,
+          () => this.openBurgerKingWebsite()
+        );
+      }
 
       console.log("✅ MenuScene: Меню создано успешно");
     } catch (error) {
