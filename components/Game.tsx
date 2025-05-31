@@ -46,12 +46,16 @@ export default function Game({ className = "" }: GameProps) {
           MobileControlsScene,
         ],
         scale: {
-          mode: Phaser.Scale.RESIZE,
-          parent: gameRef.current,
-          width: window.innerWidth,
-          height: window.innerHeight,
-          expandParent: true,
-          fullscreenTarget: gameRef.current,
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          min: {
+            width: 320,
+            height: 240,
+          },
+          max: {
+            width: 1920,
+            height: 1080,
+          },
         },
         input: {
           touch: {
@@ -84,10 +88,6 @@ export default function Game({ className = "" }: GameProps) {
       const handleResize = () => {
         if (phaserGameRef.current) {
           const game = phaserGameRef.current;
-
-          // Обновляем размеры игры под размер экрана
-          game.scale.resize(window.innerWidth, window.innerHeight);
-
           const mobileControlsScene = game.scene.getScene(
             "MobileControlsScene"
           ) as unknown;
@@ -98,66 +98,18 @@ export default function Game({ className = "" }: GameProps) {
             mobileControlsScene !== null &&
             "resize" in mobileControlsScene
           ) {
-            // Проверяем, что сцена активна и готова
-            const scene = mobileControlsScene as unknown as Phaser.Scene;
-            if (scene.scene && scene.scene.isActive()) {
-              // Ждем события готовности сцены если она не готова
-              const sceneWithEvents = scene as unknown as {
-                events: { once: (event: string, callback: () => void) => void };
-              };
-
-              // Проверяем флаг инициализации
-              const sceneWithInit = mobileControlsScene as {
-                isInitialized?: boolean;
-              };
-              if (sceneWithInit.isInitialized) {
-                // Сцена готова, можно вызывать resize
-                (
-                  mobileControlsScene as {
-                    resize: (width: number, height: number) => void;
-                  }
-                ).resize(window.innerWidth, window.innerHeight);
-              } else {
-                // Ждем готовности сцены
-                console.log("🎮 Ждем готовности MobileControlsScene");
-                sceneWithEvents.events.once("mobileControlsReady", () => {
-                  (
-                    mobileControlsScene as {
-                      resize: (width: number, height: number) => void;
-                    }
-                  ).resize(window.innerWidth, window.innerHeight);
-                });
+            (
+              mobileControlsScene as {
+                resize: (width: number, height: number) => void;
               }
-            } else {
-              console.log("🎮 MobileControlsScene не активна");
-            }
+            ).resize(window.innerWidth, window.innerHeight);
           }
         }
       };
 
       // Обработка изменения ориентации
       const handleOrientationChange = () => {
-        setTimeout(() => {
-          handleResize();
-
-          // Попытка войти в полноэкранный режим на мобильных устройствах
-          const isMobile =
-            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-              navigator.userAgent
-            );
-          if (
-            isMobile &&
-            phaserGameRef.current &&
-            !document.fullscreenElement
-          ) {
-            const gameCanvas = gameRef.current;
-            if (gameCanvas && gameCanvas.requestFullscreen) {
-              gameCanvas.requestFullscreen().catch((error) => {
-                console.log("Не удалось войти в полноэкранный режим:", error);
-              });
-            }
-          }
-        }, 100); // Небольшая задержка для корректного получения размеров
+        setTimeout(handleResize, 100); // Небольшая задержка для корректного получения размеров
       };
 
       window.addEventListener("resize", handleResize);
@@ -178,26 +130,6 @@ export default function Game({ className = "" }: GameProps) {
       phaserGameRef.current.events.on("ready", () => {
         console.log("🍔 Super Mario Whopper загружен!");
         setIsGameLoaded(true);
-
-        // Автоматически включаем полноэкранный режим на мобильных устройствах
-        const isMobile =
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          );
-        if (isMobile && gameRef.current && !document.fullscreenElement) {
-          // Небольшая задержка чтобы убедиться что всё загружено
-          setTimeout(() => {
-            const gameCanvas = gameRef.current;
-            if (gameCanvas && gameCanvas.requestFullscreen) {
-              gameCanvas.requestFullscreen().catch((error) => {
-                console.log(
-                  "Не удалось автоматически войти в полноэкранный режим:",
-                  error
-                );
-              });
-            }
-          }, 1000);
-        }
       });
 
       phaserGameRef.current.events.on("destroy", () => {
@@ -307,26 +239,13 @@ export default function Game({ className = "" }: GameProps) {
       <div
         ref={gameRef}
         className="w-full h-full min-h-[600px] rounded-lg overflow-hidden shadow-lg relative"
-        style={
-          {
-            background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
-            border: "4px solid #8B4513",
-            display: "block",
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            zIndex: 1,
-            touchAction: "none",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            msUserSelect: "none",
-            MozUserSelect: "none",
-            WebkitTouchCallout: "none",
-            WebkitTapHighlightColor: "transparent",
-          } as React.CSSProperties
-        }
+        style={{
+          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+          border: "4px solid #8B4513",
+          display: "block",
+          position: "relative",
+          zIndex: 1,
+        }}
       />
 
       {/* Информация об управлении */}
@@ -339,26 +258,8 @@ export default function Game({ className = "" }: GameProps) {
         </div>
       )}
 
-      {/* Кнопки управления в правом верхнем углу */}
-      <div className="absolute top-4 right-4 flex gap-2">
-        {/* Кнопка полноэкранного режима */}
-        <button
-          onClick={() => {
-            const gameCanvas = gameRef.current;
-            if (!document.fullscreenElement && gameCanvas) {
-              gameCanvas.requestFullscreen().catch((error) => {
-                console.log("Не удалось войти в полноэкранный режим:", error);
-              });
-            } else if (document.exitFullscreen) {
-              document.exitFullscreen();
-            }
-          }}
-          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 flex items-center gap-1"
-        >
-          {document.fullscreenElement ? "🔲 Выйти" : "📺 Полный экран"}
-        </button>
-
-        {/* Кнопка отладки для принудительного показа игры */}
+      {/* Кнопка отладки для принудительного показа игры */}
+      <div className="absolute top-4 right-4">
         <button
           onClick={() => {
             console.log("🔧 Принудительный показ игры");
