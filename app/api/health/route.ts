@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
+// Экспорт для статической генерации
+export const dynamic = "force-static";
+
 export async function GET() {
   try {
     // Базовые проверки здоровья приложения
     const healthData = {
       status: "ok",
       timestamp: new Date().toISOString(),
-      service: "Super Mario Whopper",
+      service: "Super Mario Whopper Game",
       version: "1.0.0",
       environment: process.env.NODE_ENV || "development",
       uptime: process.uptime(),
@@ -35,8 +38,8 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "X-Health-Check": "Super Mario Whopper",
-        "X-Powered-By": "Burger King - Taste is King!",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "X-Health-Check": "BK-Game-API",
       },
     });
   } catch (error) {

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:github": "next build && touch out/.nojekyll",
+    "build:github": "next build -c next.config.github.ts && touch out/.nojekyll",
+    "build:static": "next build -c next.config.github.ts",
     "start": "next start",
     "lint": "next lint"
   },
