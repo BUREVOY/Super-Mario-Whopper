@@ -32,7 +32,10 @@ function OrientationMessage() {
         ) || "ontouchstart" in window;
 
       const isPortrait = window.innerHeight > window.innerWidth;
-      setShowMessage(isMobile && isPortrait);
+      const isFullscreen = !!document.fullscreenElement;
+
+      // Показываем сообщение только если это мобильное устройство, портретная ориентация и НЕ полноэкранный режим
+      setShowMessage(isMobile && isPortrait && !isFullscreen);
     };
 
     checkOrientation();
@@ -41,9 +44,13 @@ function OrientationMessage() {
       setTimeout(checkOrientation, 100);
     });
 
+    // Слушаем события полноэкранного режима
+    document.addEventListener("fullscreenchange", checkOrientation);
+
     return () => {
       window.removeEventListener("resize", checkOrientation);
       window.removeEventListener("orientationchange", checkOrientation);
+      document.removeEventListener("fullscreenchange", checkOrientation);
     };
   }, []);
 
@@ -55,13 +62,124 @@ function OrientationMessage() {
       <p>Для лучшего игрового опыта поверните устройство в ландшафтный режим</p>
       <div className="rotate-icon">📱</div>
       <p style={{ fontSize: "14px", marginTop: "20px", opacity: 0.8 }}>
-        Поверните телефон горизонтально
+        Поверните телефон горизонтально или нажмите на игру для полноэкранного
+        режима
       </p>
     </div>
   );
 }
 
 export default function HomePage() {
+  // Добавляем стили для предотвращения скролла на мобильных устройствах
+  useEffect(() => {
+    // Добавляем стили к документу
+    const style = document.createElement("style");
+    style.textContent = `
+      body {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+        touch-action: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        -webkit-user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        user-select: none !important;
+      }
+      
+      html {
+        overflow: hidden !important;
+        position: fixed !important;
+        width: 100% !important;
+        height: 100% !important;
+        touch-action: none !important;
+      }
+      
+      .game-container {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+        touch-action: none !important;
+        z-index: 9999 !important;
+      }
+      
+      /* Стили для сообщения об ориентации */
+      .orientation-message {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background-color: #D32F2F !important;
+        color: white !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+        z-index: 10000 !important;
+        font-family: Arial, sans-serif !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
+      }
+      
+      .orientation-message h2 {
+        font-size: 2rem !important;
+        margin-bottom: 1rem !important;
+        font-weight: bold !important;
+      }
+      
+      .orientation-message p {
+        font-size: 1.2rem !important;
+        margin-bottom: 1rem !important;
+        line-height: 1.5 !important;
+      }
+      
+      .rotate-icon {
+        font-size: 4rem !important;
+        margin: 2rem 0 !important;
+        animation: rotate 2s infinite linear !important;
+      }
+      
+      @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(90deg); }
+      }
+      
+      /* Скрываем переполнение и скроллбары */
+      ::-webkit-scrollbar {
+        display: none !important;
+      }
+      
+      /* Предотвращаем зум на мобильных устройствах */
+      * {
+        -webkit-user-drag: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Очистка при размонтировании компонента
+    return () => {
+      document.head.removeChild(style);
+      // Восстанавливаем нормальные стили
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+      document.body.style.height = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.position = "";
+      document.documentElement.style.width = "";
+      document.documentElement.style.height = "";
+    };
+  }, []);
+
   return (
     <>
       <OrientationMessage />

@@ -7,6 +7,10 @@ export class MobileControlsScene extends Phaser.Scene {
   private jumpButton!: Phaser.GameObjects.Graphics;
   private pauseButton!: Phaser.GameObjects.Graphics;
 
+  // Добавляем ссылки на текстовые иконки
+  private jumpIcon!: Phaser.GameObjects.Text;
+  private pauseIcon!: Phaser.GameObjects.Text;
+
   private leftPressed: boolean = false;
   private rightPressed: boolean = false;
   private jumpPressed: boolean = false;
@@ -17,27 +21,57 @@ export class MobileControlsScene extends Phaser.Scene {
   private joystickActive: boolean = false;
   private joystickDirection: { x: number; y: number } = { x: 0, y: 0 };
 
+  // Флаг инициализации для предотвращения ранних вызовов resize
+  private isInitialized: boolean = false;
+
   constructor() {
     super({ key: SCENES.MOBILE_CONTROLS });
+    console.log("🎮 MobileControlsScene: Конструктор вызван");
   }
 
   create(): void {
+    console.log("🎮 MobileControlsScene.create: Начало создания сцены");
+
     // Проверяем, является ли устройство мобильным
     if (!this.isMobileDevice()) {
+      console.log(
+        "🎮 MobileControlsScene.create: Не мобильное устройство, выход"
+      );
       return; // Не создаем элементы управления на десктопе
     }
 
     this.createVirtualButtons();
     this.createVirtualJoystick();
     this.setupTouchEvents();
+
+    // Финальная проверка что все объекты созданы
+    if (
+      this.jumpButton &&
+      this.pauseButton &&
+      this.joystickBase &&
+      this.joystickThumb &&
+      this.jumpIcon &&
+      this.pauseIcon
+    ) {
+      // Устанавливаем флаг инициализации
+      this.isInitialized = true;
+      console.log("🎮 MobileControlsScene: Инициализация завершена успешно");
+
+      // Отправляем событие что сцена готова
+      this.events.emit("mobileControlsReady");
+    } else {
+      console.error("🎮 MobileControlsScene: Не все объекты были созданы!");
+    }
   }
 
   private isMobileDevice(): boolean {
-    return (
+    const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
-      ) || "ontouchstart" in window
-    );
+      ) || "ontouchstart" in window;
+
+    console.log("🎮 MobileControlsScene.isMobileDevice:", isMobile);
+    return isMobile;
   }
 
   private createVirtualButtons(): void {
@@ -63,14 +97,14 @@ export class MobileControlsScene extends Phaser.Scene {
     this.jumpButton.setDepth(1000);
 
     // Иконка прыжка
-    const jumpIcon = this.add.text(this.jumpButton.x, this.jumpButton.y, "↑", {
+    this.jumpIcon = this.add.text(this.jumpButton.x, this.jumpButton.y, "↑", {
       fontSize: "32px",
       color: COLORS.WHITE,
       fontFamily: "Arial Bold",
     });
-    jumpIcon.setOrigin(0.5);
-    jumpIcon.setScrollFactor(0);
-    jumpIcon.setDepth(1001);
+    this.jumpIcon.setOrigin(0.5);
+    this.jumpIcon.setScrollFactor(0);
+    this.jumpIcon.setDepth(1001);
 
     // Кнопка паузы (правый верхний угол)
     this.pauseButton = this.add.graphics();
@@ -86,7 +120,7 @@ export class MobileControlsScene extends Phaser.Scene {
     this.pauseButton.setDepth(1000);
 
     // Иконка паузы
-    const pauseIcon = this.add.text(
+    this.pauseIcon = this.add.text(
       this.pauseButton.x,
       this.pauseButton.y,
       "⏸",
@@ -96,9 +130,9 @@ export class MobileControlsScene extends Phaser.Scene {
         fontFamily: "Arial Bold",
       }
     );
-    pauseIcon.setOrigin(0.5);
-    pauseIcon.setScrollFactor(0);
-    pauseIcon.setDepth(1001);
+    this.pauseIcon.setOrigin(0.5);
+    this.pauseIcon.setScrollFactor(0);
+    this.pauseIcon.setDepth(1001);
 
     // Делаем кнопки интерактивными
     this.jumpButton.setInteractive(
@@ -294,27 +328,101 @@ export class MobileControlsScene extends Phaser.Scene {
 
   // Обновление размеров при изменении ориентации
   public resize(width: number, height: number): void {
-    if (!this.isMobileDevice()) return;
+    console.log("🎮 MobileControlsScene.resize: Начало вызова", {
+      width,
+      height,
+    });
 
-    // Обновляем позиции элементов управления
-    const buttonSize = 80;
-    const margin = 20;
+    if (!this.isMobileDevice()) {
+      console.log(
+        "🎮 MobileControlsScene.resize: Не мобильное устройство, выход"
+      );
+      return;
+    }
 
-    // Кнопка прыжка
-    this.jumpButton.setPosition(
-      width - buttonSize / 2 - margin,
-      height - buttonSize / 2 - margin
-    );
+    // Проверяем, что сцена полностью инициализирована
+    if (!this.isInitialized) {
+      console.warn(
+        "🎮 MobileControlsScene: Попытка resize до завершения инициализации"
+      );
+      return;
+    }
 
-    // Кнопка паузы
-    this.pauseButton.setPosition(width - 50, 50);
+    // Детальная проверка каждого объекта
+    console.log("🎮 MobileControlsScene.resize: Проверка объектов:");
+    console.log("  - jumpButton:", !!this.jumpButton);
+    console.log("  - pauseButton:", !!this.pauseButton);
+    console.log("  - joystickBase:", !!this.joystickBase);
+    console.log("  - joystickThumb:", !!this.joystickThumb);
+    console.log("  - jumpIcon:", !!this.jumpIcon);
+    console.log("  - pauseIcon:", !!this.pauseIcon);
 
-    // Джойстик
-    const baseSize = 100;
-    this.joystickBase.setPosition(
-      margin + baseSize / 2,
-      height - margin - baseSize / 2
-    );
-    this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
+    // Проверяем, что все объекты созданы перед обновлением позиций
+    if (
+      !this.jumpButton ||
+      !this.pauseButton ||
+      !this.joystickBase ||
+      !this.joystickThumb ||
+      !this.jumpIcon ||
+      !this.pauseIcon
+    ) {
+      console.warn(
+        "🎮 MobileControlsScene: Объекты управления не полностью инициализированы"
+      );
+      return;
+    }
+
+    try {
+      console.log("🎮 MobileControlsScene.resize: Начинаем обновление позиций");
+
+      // Обновляем позиции элементов управления
+      const buttonSize = 80;
+      const margin = 20;
+
+      // Кнопка прыжка
+      console.log("🎮 Обновляем позицию jumpButton");
+      this.jumpButton.setPosition(
+        width - buttonSize / 2 - margin,
+        height - buttonSize / 2 - margin
+      );
+      console.log("🎮 jumpButton обновлен");
+
+      // Кнопка паузы
+      console.log("🎮 Обновляем позицию pauseButton");
+      this.pauseButton.setPosition(width - 50, 50);
+      console.log("🎮 pauseButton обновлен");
+
+      // Джойстик
+      const baseSize = 100;
+      console.log("🎮 Обновляем позицию joystickBase");
+      this.joystickBase.setPosition(
+        margin + baseSize / 2,
+        height - margin - baseSize / 2
+      );
+      console.log("🎮 joystickBase обновлен");
+
+      console.log("🎮 Обновляем позицию joystickThumb");
+      this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
+      console.log("🎮 joystickThumb обновлен");
+
+      // Обновляем позиции текстовых иконок
+      console.log("🎮 Обновляем позицию jumpIcon");
+      this.jumpIcon.setPosition(this.jumpButton.x, this.jumpButton.y);
+      console.log("🎮 jumpIcon обновлен");
+
+      console.log("🎮 Обновляем позицию pauseIcon");
+      this.pauseIcon.setPosition(this.pauseButton.x, this.pauseButton.y);
+      console.log("🎮 pauseIcon обновлен");
+
+      console.log(
+        `🎮 MobileControlsScene: Размеры обновлены до ${width}x${height}`
+      );
+    } catch (error) {
+      console.error(
+        "🎮 MobileControlsScene: Ошибка при обновлении размеров:",
+        error
+      );
+      console.error("🎮 Стек ошибки:", (error as Error).stack);
+    }
   }
 }
