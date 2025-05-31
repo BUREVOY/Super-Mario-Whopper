@@ -21,7 +21,9 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
   private effect: PowerUpEffect;
 
   constructor(scene: Phaser.Scene, data: PowerUpData) {
-    super(scene, data.x, data.y, data.type);
+    // Выбираем правильную текстуру с fallback для production
+    const textureKey = PowerUp.getTextureKey(scene, data.type);
+    super(scene, data.x, data.y, textureKey);
 
     this.powerUpType = data.type;
     this.points = data.points;
@@ -59,6 +61,66 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
     // Анимация мерцания
     this.createFloatingAnimation();
     this.setTint(this.getColorByType(data.type));
+  }
+
+  // Статический метод для получения правильного ключа текстуры
+  private static getTextureKey(
+    scene: Phaser.Scene,
+    type: PowerUpData["type"]
+  ): string {
+    const primaryKey = type;
+    const fallbackKey = `${type}_placeholder`;
+
+    // Проверяем существование основной текстуры
+    if (scene.textures.exists(primaryKey)) {
+      console.log(`✅ PowerUp: Используем основную текстуру ${primaryKey}`);
+      return primaryKey;
+    }
+
+    // Проверяем fallback текстуру
+    if (scene.textures.exists(fallbackKey)) {
+      console.log(`⚠️ PowerUp: Используем fallback текстуру ${fallbackKey}`);
+      return fallbackKey;
+    }
+
+    // Создаем экстренную текстуру если ничего нет
+    console.warn(`❌ PowerUp: Создаем экстренную текстуру для ${type}`);
+    PowerUp.createEmergencyTexture(scene, type);
+    return `${type}_emergency`;
+  }
+
+  // Создание экстренной текстуры если основная и fallback не найдены
+  private static createEmergencyTexture(
+    scene: Phaser.Scene,
+    type: PowerUpData["type"]
+  ): void {
+    const graphics = scene.add.graphics();
+
+    let color: number;
+    let size: number;
+
+    switch (type) {
+      case "crown":
+        color = 0xffd700; // Золотой
+        size = 64;
+        break;
+      case "whopper":
+        color = parseInt(COLORS.BK_RED.replace("#", ""), 16);
+        size = 80;
+        break;
+      case "onion_rings":
+        color = parseInt(COLORS.BK_YELLOW.replace("#", ""), 16);
+        size = 72;
+        break;
+      default:
+        color = parseInt(COLORS.WHITE.replace("#", ""), 16);
+        size = 64;
+    }
+
+    graphics.fillStyle(color);
+    graphics.fillRect(0, 0, size, size);
+    graphics.generateTexture(`${type}_emergency`, size, size);
+    graphics.destroy();
   }
 
   private getEffectByType(type: PowerUpData["type"]): PowerUpEffect {
@@ -113,6 +175,9 @@ export class PowerUp extends Phaser.Physics.Arcade.Sprite {
     if (this.collected) return;
 
     this.collected = true;
+    console.log(
+      `🍔 PowerUp: Собран бонус ${this.powerUpType}, очки: +${this.points}`
+    );
 
     // Эффект сбора
     this.scene.tweens.add({

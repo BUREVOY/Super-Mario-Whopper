@@ -2,13 +2,7 @@ import * as Phaser from "phaser";
 import { Player } from "../Player";
 import { Enemy } from "../Enemy";
 import { PowerUp } from "../PowerUp";
-import {
-  GAME_CONFIG,
-  POWER_UPS,
-  COLORS,
-  SOUNDS,
-  SCENES,
-} from "../../constants";
+import { SCENES, COLORS, GAME_CONFIG, SOUNDS } from "../../constants";
 import { GameState } from "../../../types/game";
 
 export class GameScene extends Phaser.Scene {
@@ -420,24 +414,52 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePlayerPowerUpCollision(player: Player, powerUp: PowerUp): void {
-    const type = powerUp.getType();
-    const config = POWER_UPS[type as keyof typeof POWER_UPS];
-
-    if (config) {
-      // Добавляем очки
-      this.addScore(config.points);
-
-      // Активируем эффект
-      player.activatePowerUp(config.effect);
-
-      // Воспроизводим звук
-      if (this.cache.audio.exists(SOUNDS.COLLECT)) {
-        this.sound.play(SOUNDS.COLLECT, { volume: 0.5 });
-      }
-
-      // Удаляем бонус
-      powerUp.destroy();
+    // Проверяем, что бонус еще не собран
+    if (powerUp.isAlreadyCollected()) {
+      return;
     }
+
+    const type = powerUp.getType();
+    console.log(`🍔 GameScene: Обработка коллизии с бонусом ${type}`);
+
+    // Используем прямое сопоставление типов вместо констант POWER_UPS
+    let points: number;
+    let effect: string;
+
+    switch (type) {
+      case "crown":
+        points = 500;
+        effect = "invincibility";
+        break;
+      case "whopper":
+        points = 1000;
+        effect = "extra_life";
+        break;
+      case "onion_rings":
+        points = 300;
+        effect = "speed_boost";
+        break;
+      default:
+        console.warn(`⚠️ GameScene: Неизвестный тип бонуса: ${type}`);
+        points = 100;
+        effect = "speed";
+    }
+
+    console.log(`🍔 GameScene: Добавляем очки: +${points}, эффект: ${effect}`);
+
+    // Добавляем очки
+    this.addScore(points);
+
+    // Активируем эффект
+    player.activatePowerUp(effect);
+
+    // Воспроизводим звук
+    if (this.cache.audio.exists(SOUNDS.COLLECT)) {
+      this.sound.play(SOUNDS.COLLECT, { volume: 0.5 });
+    }
+
+    // Визуальный эффект и уничтожение бонуса
+    powerUp.collect();
   }
 
   private addScore(points: number): void {

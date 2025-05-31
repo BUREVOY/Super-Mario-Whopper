@@ -401,6 +401,8 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createFallbackTextures(): void {
+    console.log("🎮 PreloadScene: Создание fallback текстур...");
+
     // Проверяем, загрузились ли основные текстуры, если нет - используем placeholder'ы
     const textures = [
       { key: "player", fallback: "player_placeholder" },
@@ -418,6 +420,10 @@ export class PreloadScene extends Phaser.Scene {
 
     textures.forEach(({ key, fallback }) => {
       if (!this.textures.exists(key)) {
+        console.log(
+          `⚠️ PreloadScene: Основная текстура ${key} не найдена, используем ${fallback}`
+        );
+
         // Копируем fallback текстуру под основным именем
         const fallbackTexture = this.textures.get(fallback);
         if (fallbackTexture && fallbackTexture.source[0]) {
@@ -432,10 +438,34 @@ export class PreloadScene extends Phaser.Scene {
           if (ctx && source.image) {
             ctx.drawImage(source.image as HTMLImageElement, 0, 0);
             this.textures.addCanvas(key, canvas);
+            console.log(
+              `✅ PreloadScene: Создана fallback текстура для ${key}`
+            );
           }
+        } else {
+          // Если даже fallback не существует, создаем экстренную
+          console.warn(
+            `❌ PreloadScene: Fallback текстура ${fallback} не найдена, создаем экстренную для ${key}`
+          );
+          this.createFallbackTexture(key);
         }
+      } else {
+        console.log(`✅ PreloadScene: Основная текстура ${key} найдена`);
       }
     });
+
+    // Дополнительная проверка для бонусов
+    const powerUpTypes = ["crown", "whopper", "onion_rings"];
+    powerUpTypes.forEach((type) => {
+      if (!this.textures.exists(type)) {
+        console.warn(
+          `❌ PreloadScene: Критическая ошибка! Текстура бонуса ${type} не создана!`
+        );
+        this.createFallbackTexture(type);
+      }
+    });
+
+    console.log("🎮 PreloadScene: Fallback текстуры созданы");
   }
 
   private createFallbackTexture(key: string): void {

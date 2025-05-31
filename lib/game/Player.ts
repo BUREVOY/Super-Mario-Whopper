@@ -241,22 +241,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   public activatePowerUp(type: string): void {
+    console.log(`🎮 Player: Активация эффекта бонуса: ${type}`);
+
     switch (type) {
       case "invincibility":
+        console.log(`🛡️ Player: Активация неуязвимости`);
         this.activateInvincibility();
         break;
       case "health":
+        const oldHealth = this.health;
         this.health = Math.min(this.health + 1, PLAYER_CONFIG.MAX_HEALTH);
+        console.log(
+          `❤️ Player: Здоровье увеличено с ${oldHealth} до ${this.health}`
+        );
         break;
       case "speed":
+        console.log(`⚡ Player: Активация ускорения`);
         this.activateSpeedBoost();
         break;
       case "extra_life":
+        const oldHealth2 = this.health;
         this.health = Math.min(this.health + 1, PLAYER_CONFIG.MAX_HEALTH);
+        console.log(
+          `💖 Player: Дополнительная жизнь! Здоровье: ${oldHealth2} → ${this.health}`
+        );
         break;
       case "speed_boost":
+        console.log(`🏃 Player: Активация ускорения (speed_boost)`);
         this.activateSpeedBoost();
         break;
+      default:
+        console.warn(`⚠️ Player: Неизвестный тип эффекта: ${type}`);
     }
   }
 
