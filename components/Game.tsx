@@ -90,10 +90,19 @@ export default function Game({ className = "" }: GameProps) {
           const game = phaserGameRef.current;
           const mobileControlsScene = game.scene.getScene(
             "MobileControlsScene"
-          ) as any;
+          ) as unknown;
 
-          if (mobileControlsScene && mobileControlsScene.resize) {
-            mobileControlsScene.resize(window.innerWidth, window.innerHeight);
+          if (
+            mobileControlsScene &&
+            typeof mobileControlsScene === "object" &&
+            mobileControlsScene !== null &&
+            "resize" in mobileControlsScene
+          ) {
+            (
+              mobileControlsScene as {
+                resize: (width: number, height: number) => void;
+              }
+            ).resize(window.innerWidth, window.innerHeight);
           }
         }
       };
@@ -176,7 +185,7 @@ export default function Game({ className = "" }: GameProps) {
         error instanceof Error ? error.message : "Неизвестная ошибка"
       );
     }
-  }, []);
+  }, [isGameLoaded]);
 
   // Обработка изменения размера окна
   useEffect(() => {

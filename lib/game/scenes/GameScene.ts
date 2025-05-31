@@ -1,9 +1,15 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { Player } from "../Player";
 import { Enemy } from "../Enemy";
 import { PowerUp } from "../PowerUp";
-import { GAME_CONFIG, SCENES, COLORS, SOUNDS } from "../../constants";
-import { GameState, LevelConfig } from "../../../types/game";
+import {
+  GAME_CONFIG,
+  POWER_UPS,
+  COLORS,
+  SOUNDS,
+  SCENES,
+} from "../../constants";
+import { GameState } from "../../../types/game";
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -103,9 +109,9 @@ export class GameScene extends Phaser.Scene {
 
         // Включаем сглаживание для лучшего качества
         if (bg.texture && bg.texture.source[0]) {
-          const source = bg.texture.source[0] as any;
+          const source = bg.texture.source[0] as Phaser.Textures.TextureSource;
           if (source.image) {
-            source.image.style.imageRendering = "auto";
+            (source.image as HTMLImageElement).style.imageRendering = "auto";
           }
         }
       }
@@ -346,7 +352,9 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.enemies,
-      this.handlePlayerEnemyCollision,
+      (player, enemy) => {
+        this.handlePlayerEnemyCollision(player as Player, enemy as Enemy);
+      },
       undefined,
       this
     );
@@ -355,7 +363,9 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.powerUps,
-      this.handlePowerUpCollection,
+      (player, powerUp) => {
+        this.handlePlayerPowerUpCollision(player as Player, powerUp as PowerUp);
+      },
       undefined,
       this
     );
@@ -390,42 +400,44 @@ export class GameScene extends Phaser.Scene {
     restartKey.on("down", this.restartLevel, this);
   }
 
-  private handlePlayerEnemyCollision(player: any, enemy: any): void {
-    const playerSprite = player as Player;
-    const enemySprite = enemy as Enemy;
+  private handlePlayerEnemyCollision(player: Player, enemy: Enemy): void {
+    if (player.getIsInvincible()) return;
 
-    // Проверка, прыгает ли игрок на врага сверху
+    // Проверяем, прыгнул ли игрок на врага
     if (
-      playerSprite.body &&
-      playerSprite.body.velocity.y > 0 && // Игрок падает вниз
-      playerSprite.y < enemySprite.y - 5 && // Игрок выше врага (уменьшено с 10 до 5)
-      Math.abs(playerSprite.x - enemySprite.x) < 40 // Игрок достаточно близко по горизонтали
+      player.body &&
+      enemy.body &&
+      player.body.velocity.y > 0 &&
+      player.y < enemy.y - 5
     ) {
-      // Игрок побеждает врага
-      this.addScore(enemySprite.getPoints());
-      enemySprite.die();
-      playerSprite.setVelocityY(-300); // Отскок после убийства врага
-    } else if (!playerSprite.getIsInvincible()) {
+      // Игрок прыгнул на врага
+      this.defeatEnemy(enemy);
+      player.setVelocityY(-300); // Отскок
+    } else {
       // Игрок получает урон
-      playerSprite.takeDamage();
-      this.updateLives();
+      player.takeDamage();
     }
   }
 
-  private handlePowerUpCollection(player: any, powerUp: any): void {
-    const powerUpSprite = powerUp as PowerUp;
+  private handlePlayerPowerUpCollision(player: Player, powerUp: PowerUp): void {
+    const type = powerUp.getType();
+    const config = POWER_UPS[type as keyof typeof POWER_UPS];
 
-    if (powerUpSprite.isAlreadyCollected()) return;
+    if (config) {
+      // Добавляем очки
+      this.addScore(config.points);
 
-    // Добавление очков
-    this.addScore(powerUpSprite.getPoints());
+      // Активируем эффект
+      player.activatePowerUp(config.effect);
 
-    // Активация эффекта - передаем тип эффекта как строку
-    const effect = powerUpSprite.getEffect();
-    (player as Player).activatePowerUp(effect.type);
+      // Воспроизводим звук
+      if (this.cache.audio.exists(SOUNDS.COLLECT)) {
+        this.sound.play(SOUNDS.COLLECT, { volume: 0.5 });
+      }
 
-    // Сбор бонуса
-    powerUpSprite.collect();
+      // Удаляем бонус
+      powerUp.destroy();
+    }
   }
 
   private addScore(points: number): void {
@@ -588,6 +600,71 @@ export class GameScene extends Phaser.Scene {
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       ) || "ontouchstart" in window
+    );
+  }
+
+  private defeatEnemy(enemy: Enemy): void {
+    // Добавляем очки за врага
+    this.addScore(enemy.getPoints());
+
+    // Уничтожаем врага
+    enemy.destroy();
+
+    // Воспроизводим звук победы над врагом
+    if (this.cache.audio.exists(SOUNDS.ENEMY_DEFEAT)) {
+      this.sound.play(SOUNDS.ENEMY_DEFEAT, { volume: 0.3 });
+    }
+  }
+
+  private createScaledTexture(
+    originalKey: string,
+    targetWidth: number,
+    targetHeight: number
+  ): void {
+    const originalTexture = this.textures.get(originalKey);
+    const source = originalTexture.source[0];
+
+    if (!source || !source.image) return;
+
+    // Создаем canvas для масштабирования
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) return;
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    // Включаем сглаживание для лучшего качества (кроме пиксельных спрайтов)
+    const isPixelSprite =
+      originalKey.includes("player") ||
+      originalKey.includes("burger") ||
+      originalKey.includes("fries") ||
+      originalKey.includes("soda") ||
+      originalKey.includes("crown") ||
+      originalKey.includes("whopper") ||
+      originalKey.includes("onion_rings");
+
+    ctx.imageSmoothingEnabled = !isPixelSprite; // Сглаживание для фонов, пиксели для спрайтов
+
+    // Рисуем масштабированное изображение
+    ctx.drawImage(
+      source.image as HTMLImageElement,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
+
+    // Заменяем оригинальную текстуру масштабированной
+    this.textures.addCanvas(`${originalKey}_scaled`, canvas);
+
+    // Удаляем оригинальную и переименовываем масштабированную
+    this.textures.remove(originalKey);
+    this.textures.addCanvas(originalKey, canvas);
+
+    console.log(
+      `🔧 Масштабировал ${originalKey} до ${targetWidth}x${targetHeight}`
     );
   }
 }

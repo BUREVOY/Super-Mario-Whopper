@@ -63,25 +63,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private setupMobileControls(): void {
     // Слушаем события мобильного управления
-    this.scene.events.on("mobileControl", (data: any) => {
-      switch (data.action) {
-        case "left":
-          this.mobileControls.left = data.pressed;
-          break;
-        case "right":
-          this.mobileControls.right = data.pressed;
-          break;
-        case "jump":
-          this.mobileControls.jump = data.pressed;
-          break;
-        case "pause":
-          if (data.pressed) {
-            this.scene.scene.pause();
-            this.scene.scene.launch(SCENES.PAUSE);
-          }
-          break;
+    this.scene.events.on(
+      "mobileControl",
+      (data: { action: string; pressed: boolean }) => {
+        switch (data.action) {
+          case "left":
+            this.mobileControls.left = data.pressed;
+            break;
+          case "right":
+            this.mobileControls.right = data.pressed;
+            break;
+          case "jump":
+            this.mobileControls.jump = data.pressed;
+            break;
+          case "pause":
+            if (data.pressed) {
+              this.scene.scene.pause();
+              this.scene.scene.launch(SCENES.PAUSE);
+            }
+            break;
+        }
       }
-    });
+    );
   }
 
   private createAnimations(): void {
@@ -328,6 +331,32 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.speedBoostTimer) {
       this.speedBoostTimer.destroy();
       this.speedBoostTimer = undefined;
+    }
+  }
+
+  handleCollision(object: unknown): void {
+    // Если объект является спрайтом Phaser
+    if (object && typeof object === "object" && "texture" in object) {
+      const phaserObject = object as Phaser.GameObjects.Sprite;
+
+      // Проверяем тип объекта по текстуре
+      const textureKey = phaserObject.texture.key;
+
+      if (textureKey.includes("enemy")) {
+        this.takeDamage();
+      } else if (
+        textureKey.includes("powerup") ||
+        textureKey.includes("crown")
+      ) {
+        // Логика подбора бонуса
+        if (
+          "destroy" in phaserObject &&
+          typeof phaserObject.destroy === "function"
+        ) {
+          phaserObject.destroy();
+        }
+        this.scene.sound.play(SOUNDS.COLLECT);
+      }
     }
   }
 }

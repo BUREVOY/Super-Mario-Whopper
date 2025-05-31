@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
-import GameStats from "@/components/GameStats";
 import AchievementNotification from "@/components/AchievementNotification";
 
 // Динамический импорт игры для избежания SSR проблем

@@ -163,6 +163,11 @@ export default function GameStats({ className = "" }: GameStatsProps) {
     saveStats(newStats);
   };
 
+  // Экспортируем функцию обновления статистики для использования в игре
+  (
+    window as unknown as { updateGameStats?: typeof updateStats }
+  ).updateGameStats = updateStats;
+
   // Сброс статистики
   const resetStats = () => {
     const resetStats: Stats = {

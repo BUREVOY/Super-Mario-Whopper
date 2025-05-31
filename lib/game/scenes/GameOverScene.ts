@@ -1,5 +1,6 @@
-import Phaser from "phaser";
-import { SCENES, COLORS, GAME_CONFIG } from "../../constants";
+import * as Phaser from "phaser";
+import { SCENES } from "../../constants";
+import { COLORS } from "../../constants";
 
 export class GameOverScene extends Phaser.Scene {
   private score: number = 0;

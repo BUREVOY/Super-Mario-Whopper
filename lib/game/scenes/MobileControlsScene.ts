@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { SCENES, COLORS } from "../../constants";
 
 export class MobileControlsScene extends Phaser.Scene {

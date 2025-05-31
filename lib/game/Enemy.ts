@@ -1,7 +1,6 @@
 import * as Phaser from "phaser";
 import { ENEMY_TYPES, ANIMATIONS, SOUNDS } from "../constants";
 import { EnemyConfig } from "@/types/game";
-import { COLORS } from "@/lib/constants";
 
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private enemyType: "burger" | "fries" | "soda";

@@ -1,11 +1,11 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { SCENES, COLORS, GAME_CONFIG } from "../../constants";
 
 export class MenuScene extends Phaser.Scene {
   private startButton!: Phaser.GameObjects.Text;
   private instructionsButton!: Phaser.GameObjects.Text;
   private creditsButton!: Phaser.GameObjects.Text;
-  private background!: Phaser.GameObjects.Image;
+  private background!: Phaser.GameObjects.Rectangle;
   private logo!: Phaser.GameObjects.Text;
   private subtitle!: Phaser.GameObjects.Text;
 
@@ -65,7 +65,13 @@ export class MenuScene extends Phaser.Scene {
     }
 
     if (this.textures.exists(backgroundKey)) {
-      this.background = this.add.image(0, 0, backgroundKey);
+      this.background = this.add.rectangle(
+        0,
+        0,
+        GAME_CONFIG.WIDTH,
+        GAME_CONFIG.HEIGHT,
+        0
+      );
       this.background.setOrigin(0, 0);
       this.background.setDisplaySize(GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
       this.background.setAlpha(0.8);
@@ -78,12 +84,12 @@ export class MenuScene extends Phaser.Scene {
         GAME_CONFIG.WIDTH,
         GAME_CONFIG.HEIGHT,
         parseInt(COLORS.BK_RED.replace("#", ""), 16)
-      ) as any;
+      );
       console.log("⚠️ MenuScene: Используем fallback фон");
     }
 
     // Добавляем оверлей для лучшей читаемости текста
-    const overlay = this.add.rectangle(
+    this.add.rectangle(
       GAME_CONFIG.WIDTH / 2,
       GAME_CONFIG.HEIGHT / 2,
       GAME_CONFIG.WIDTH,
@@ -283,8 +289,8 @@ export class MenuScene extends Phaser.Scene {
 
   private setupButtonEvents(
     button: Phaser.GameObjects.Text,
-    hoverStyle: any,
-    normalStyle: any,
+    hoverStyle: Phaser.Types.GameObjects.Text.TextStyle,
+    normalStyle: Phaser.Types.GameObjects.Text.TextStyle,
     callback: () => void
   ): void {
     button.on("pointerover", () => {
@@ -723,6 +729,94 @@ Made with love by Арсений Юдаков
       alpha: 1,
       duration: 300,
       ease: "Power2",
+    });
+  }
+
+  private createStartButton(): void {
+    const button = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2 + 100,
+        "🎮 НАЧАТЬ ИГРУ",
+        {
+          fontSize: "28px",
+          color: "#FFFFFF",
+          backgroundColor: "#D32F2F",
+          padding: { x: 20, y: 10 },
+        }
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    // Добавляем анимации наведения
+    button.on("pointerover", () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 200,
+        ease: "Power2",
+      });
+
+      // Воспроизводим звук если доступен
+      if (this.cache.audio.exists("ui_hover")) {
+        this.sound.play("ui_hover", { volume: 0.3 });
+      }
+    });
+
+    button.on("pointerout", () => {
+      this.tweens.add({
+        targets: button,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: "Power2",
+      });
+    });
+
+    button.on("pointerdown", () => {
+      // Воспроизводим звук клика если доступен
+      if (this.cache.audio.exists("ui_click")) {
+        this.sound.play("ui_click", { volume: 0.5 });
+      }
+
+      // Переходим к игре
+      this.scene.start(SCENES.GAME);
+    });
+  }
+
+  private createFullscreenButton(): void {
+    // Кнопка полноэкранного режима (только для настольных устройств)
+    if (!this.sys.game.device.os.desktop) return;
+
+    const fullscreenButton = this.add
+      .text(
+        this.cameras.main.width - 20,
+        20,
+        this.scale.isFullscreen ? "📤 Выйти" : "📺 Полный экран",
+        {
+          fontSize: "16px",
+          color: "#FFFFFF",
+          backgroundColor: "#5D4037",
+          padding: { x: 10, y: 5 },
+        }
+      )
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true });
+
+    fullscreenButton.on("pointerdown", () => {
+      if (this.scale.isFullscreen) {
+        this.scale.stopFullscreen();
+      } else {
+        this.scale.startFullscreen();
+      }
+    });
+
+    // Обновляем текст кнопки при изменении режима
+    this.scale.on("fullscreenchange", () => {
+      fullscreenButton.setText(
+        this.scale.isFullscreen ? "📤 Выйти" : "📺 Полный экран"
+      );
     });
   }
 }

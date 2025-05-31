@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
-import { GAME_CONFIG, SCENES } from "../lib/constants";
+import { GAME_CONFIG } from "../lib/constants";
 import { PreloadScene } from "../lib/game/scenes/PreloadScene";
 import { MenuScene } from "../lib/game/scenes/MenuScene";
 import { GameScene } from "../lib/game/scenes/GameScene";

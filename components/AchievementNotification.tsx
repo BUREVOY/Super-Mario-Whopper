@@ -22,7 +22,9 @@ export default function AchievementNotification({
 
   useEffect(() => {
     // Слушаем события достижений
-    const handleAchievementUnlocked = (achievement: Achievement) => {
+    const handleAchievementUnlocked = (achievement?: Achievement) => {
+      if (!achievement) return;
+
       setNotifications((prev) => [...prev, achievement]);
 
       // Автоматически убираем уведомление через 5 секунд

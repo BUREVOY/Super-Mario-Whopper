@@ -1,17 +1,19 @@
 // Система событий для связи между игрой и UI
+type EventCallback<T = unknown> = (data?: T) => void;
+
 class GameEventManager {
-  private listeners: { [key: string]: Function[] } = {};
+  private listeners: { [key: string]: EventCallback[] } = {};
 
   // Подписка на событие
-  on(event: string, callback: Function) {
+  on<T = unknown>(event: string, callback: EventCallback<T>) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
-    this.listeners[event].push(callback);
+    this.listeners[event].push(callback as EventCallback);
   }
 
   // Отписка от события
-  off(event: string, callback: Function) {
+  off<T = unknown>(event: string, callback: EventCallback<T>) {
     if (!this.listeners[event]) return;
     this.listeners[event] = this.listeners[event].filter(
       (cb) => cb !== callback
@@ -19,7 +21,7 @@ class GameEventManager {
   }
 
   // Отправка события
-  emit(event: string, data?: any) {
+  emit<T = unknown>(event: string, data?: T) {
     if (!this.listeners[event]) return;
     this.listeners[event].forEach((callback) => callback(data));
   }

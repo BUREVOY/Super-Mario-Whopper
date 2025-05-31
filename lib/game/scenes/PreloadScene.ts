@@ -1,11 +1,15 @@
-import Phaser from "phaser";
-import { SCENES, COLORS } from "../../constants";
+import * as Phaser from "phaser";
+import { SCENES, COLORS, GAME_CONFIG } from "../../constants";
 
 export class PreloadScene extends Phaser.Scene {
   private loadingBar!: Phaser.GameObjects.Graphics;
   private progressBar!: Phaser.GameObjects.Graphics;
   private loadingText!: Phaser.GameObjects.Text;
   private percentText!: Phaser.GameObjects.Text;
+  private particles: Phaser.GameObjects.Text[] = [];
+  private logo?: Phaser.GameObjects.Text;
+  private shadow?: Phaser.GameObjects.Graphics;
+  private subtitle?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: SCENES.PRELOAD });
@@ -234,7 +238,7 @@ export class PreloadScene extends Phaser.Scene {
       this.updateProgressBar(value);
     });
 
-    this.load.on("fileprogress", (file: any) => {
+    this.load.on("fileprogress", (file: { key: string }) => {
       this.updateLoadingText(file.key);
     });
 
@@ -243,7 +247,7 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     // Обработка ошибок загрузки
-    this.load.on("loaderror", (file: any) => {
+    this.load.on("loaderror", (file: { key: string; src: string }) => {
       console.warn(`Не удалось загрузить файл: ${file.key} - ${file.src}`);
       // Создаем fallback текстуру
       this.createFallbackTexture(file.key);
@@ -265,7 +269,7 @@ export class PreloadScene extends Phaser.Scene {
       }
     });
 
-    this.load.on("loaderror", (file: any) => {
+    this.load.on("loaderror", (file: { key: string }) => {
       if (file.key === "victory_sound") {
         console.error("❌ Ошибка загрузки victory_sound:", file);
       }
@@ -426,7 +430,7 @@ export class PreloadScene extends Phaser.Scene {
           canvas.height = source.height;
 
           if (ctx && source.image) {
-            ctx.drawImage(source.image as any, 0, 0);
+            ctx.drawImage(source.image as HTMLImageElement, 0, 0);
             this.textures.addCanvas(key, canvas);
           }
         }
@@ -591,7 +595,7 @@ export class PreloadScene extends Phaser.Scene {
       console.log("✅ victory_sound успешно загружен!");
     });
 
-    this.load.on("loaderror", (file: any) => {
+    this.load.on("loaderror", (file: { key: string }) => {
       if (file.key === "victory_sound") {
         console.error("❌ Ошибка загрузки victory_sound:", file);
       }
@@ -599,5 +603,85 @@ export class PreloadScene extends Phaser.Scene {
 
     // Загрузка ресурсов
     this.loadAssets();
+  }
+
+  update(): void {
+    // Анимация индикатора загрузки
+    if (this.loadingText && this.loadingText.active) {
+      const loadingTextObj = this.loadingText as Phaser.GameObjects.Text;
+      loadingTextObj.setAlpha(0.5 + Math.sin(this.time.now * 0.005) * 0.5);
+    }
+
+    // Анимация логотипа если он существует
+    if (this.logo && this.logo.active) {
+      const logoObj = this.logo as Phaser.GameObjects.Text;
+      logoObj.setScale(0.95 + Math.sin(this.time.now * 0.003) * 0.05);
+    }
+
+    // Анимация частиц
+    if (this.particles.length > 0) {
+      this.particles.forEach((particle) => {
+        const particleObj = particle as Phaser.GameObjects.Text;
+        particleObj.y -= 1;
+        if (particleObj.y < -50) {
+          particleObj.y = GAME_CONFIG.HEIGHT + 50;
+          particleObj.x = Phaser.Math.Between(0, GAME_CONFIG.WIDTH);
+        }
+      });
+    }
+
+    // Обновляем анимацию прогресс бара
+    if (this.progressBar && this.progressBar.active) {
+      const currentTime = this.time.now;
+      const breathingScale = 1 + Math.sin(currentTime * 0.005) * 0.02;
+      const progressBarObj = this.progressBar as Phaser.GameObjects.Graphics;
+      progressBarObj.setScale(breathingScale);
+    }
+
+    // Анимация тени
+    if (this.shadow && this.shadow.active) {
+      const shadowObj = this.shadow as Phaser.GameObjects.Graphics;
+      shadowObj.setAlpha(0.3 + Math.sin(this.time.now * 0.003) * 0.1);
+    }
+
+    // Анимация субтитров
+    if (this.subtitle && this.subtitle.active) {
+      const subtitleObj = this.subtitle as Phaser.GameObjects.Text;
+      subtitleObj.setAlpha(0.7 + Math.sin(this.time.now * 0.004) * 0.3);
+    }
+  }
+
+  private createBackground(): void {
+    console.log("🎨 PreloadScene: Создание фона...");
+
+    // Градиентный фон
+    const graphics = this.add.graphics();
+    graphics.fillGradientStyle(
+      parseInt(COLORS.BK_YELLOW.replace("#", ""), 16),
+      parseInt(COLORS.BK_RED.replace("#", ""), 16),
+      parseInt(COLORS.BK_ORANGE.replace("#", ""), 16),
+      parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
+      1,
+      1,
+      1,
+      1
+    );
+    graphics.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+
+    // Добавляем декоративные элементы
+    for (let i = 0; i < 10; i++) {
+      const particle = this.add.text(
+        Phaser.Math.Between(0, GAME_CONFIG.WIDTH),
+        Phaser.Math.Between(0, GAME_CONFIG.HEIGHT),
+        ["🍔", "🍟", "🥤", "👑"][Math.floor(Math.random() * 4)],
+        {
+          fontSize: "32px",
+        }
+      );
+      particle.setAlpha(0.3);
+      this.particles.push(particle);
+    }
+
+    console.log("✅ PreloadScene: Фон создан");
   }
 }
