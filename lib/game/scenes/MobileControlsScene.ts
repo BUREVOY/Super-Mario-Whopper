@@ -6,30 +6,33 @@ export class MobileControlsScene extends Phaser.Scene {
   private rightButton!: Phaser.GameObjects.Graphics;
   private jumpButton!: Phaser.GameObjects.Graphics;
   private pauseButton!: Phaser.GameObjects.Graphics;
-
-  private leftPressed: boolean = false;
-  private rightPressed: boolean = false;
-  private jumpPressed: boolean = false;
-
-  // Виртуальный джойстик
   private joystickBase!: Phaser.GameObjects.Graphics;
   private joystickThumb!: Phaser.GameObjects.Graphics;
-  private joystickActive: boolean = false;
-  private joystickDirection: { x: number; y: number } = { x: 0, y: 0 };
+
+  private isJoystickActive = false;
+  private joystickStartX = 0;
+  private joystickStartY = 0;
 
   constructor() {
     super({ key: SCENES.MOBILE_CONTROLS });
   }
 
   create(): void {
-    // Проверяем, является ли устройство мобильным
+    // Показываем мобильное управление только на мобильных устройствах
     if (!this.isMobileDevice()) {
-      return; // Не создаем элементы управления на десктопе
+      return;
     }
 
-    this.createVirtualButtons();
-    this.createVirtualJoystick();
-    this.setupTouchEvents();
+    console.log("🎮 MobileControlsScene: Создание мобильного управления...");
+
+    this.createJoystick();
+    this.createJumpButton();
+    this.createPauseButton();
+
+    // Настройка входных данных
+    this.setupInputHandlers();
+
+    console.log("✅ MobileControlsScene: Мобильное управление создано");
   }
 
   private isMobileDevice(): boolean {
@@ -40,88 +43,23 @@ export class MobileControlsScene extends Phaser.Scene {
     );
   }
 
-  private createVirtualButtons(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const buttonSize = 80;
-    const margin = 20;
+  private createJoystick(): void {
+    const { width, height } = this.cameras.main;
 
-    // Кнопка прыжка (справа)
-    this.jumpButton = this.add.graphics();
-    this.jumpButton.fillStyle(
-      parseInt(COLORS.BK_RED.replace("#", ""), 16),
-      0.7
-    );
-    this.jumpButton.fillCircle(0, 0, buttonSize / 2);
-    this.jumpButton.lineStyle(4, parseInt(COLORS.WHITE.replace("#", ""), 16));
-    this.jumpButton.strokeCircle(0, 0, buttonSize / 2);
-    this.jumpButton.setPosition(
-      width - buttonSize / 2 - margin,
-      height - buttonSize / 2 - margin
-    );
-    this.jumpButton.setScrollFactor(0);
-    this.jumpButton.setDepth(1000);
+    // Адаптивные размеры в зависимости от ориентации
+    const isPortrait = height > width;
+    const baseSize = isPortrait ? 120 : 100; // Больше в портретной ориентации
+    const margin = isPortrait ? 30 : 20;
 
-    // Иконка прыжка
-    const jumpIcon = this.add.text(this.jumpButton.x, this.jumpButton.y, "↑", {
-      fontSize: "32px",
-      color: COLORS.WHITE,
-      fontFamily: "Arial Bold",
-    });
-    jumpIcon.setOrigin(0.5);
-    jumpIcon.setScrollFactor(0);
-    jumpIcon.setDepth(1001);
-
-    // Кнопка паузы (правый верхний угол)
-    this.pauseButton = this.add.graphics();
-    this.pauseButton.fillStyle(
-      parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
-      0.7
-    );
-    this.pauseButton.fillCircle(0, 0, 30);
-    this.pauseButton.lineStyle(3, parseInt(COLORS.WHITE.replace("#", ""), 16));
-    this.pauseButton.strokeCircle(0, 0, 30);
-    this.pauseButton.setPosition(width - 50, 50);
-    this.pauseButton.setScrollFactor(0);
-    this.pauseButton.setDepth(1000);
-
-    // Иконка паузы
-    const pauseIcon = this.add.text(
-      this.pauseButton.x,
-      this.pauseButton.y,
-      "⏸",
-      {
-        fontSize: "20px",
-        color: COLORS.WHITE,
-        fontFamily: "Arial Bold",
-      }
-    );
-    pauseIcon.setOrigin(0.5);
-    pauseIcon.setScrollFactor(0);
-    pauseIcon.setDepth(1001);
-
-    // Делаем кнопки интерактивными
-    this.jumpButton.setInteractive(
-      new Phaser.Geom.Circle(0, 0, buttonSize / 2),
-      Phaser.Geom.Circle.Contains
-    );
-
-    this.pauseButton.setInteractive(
-      new Phaser.Geom.Circle(0, 0, 30),
-      Phaser.Geom.Circle.Contains
-    );
-  }
-
-  private createVirtualJoystick(): void {
-    const margin = 20;
-    const baseSize = 100;
-    const thumbSize = 40;
+    // Позиционирование джойстика
+    const joystickX = margin + baseSize / 2;
+    const joystickY = height - margin - baseSize / 2;
 
     // База джойстика
     this.joystickBase = this.add.graphics();
     this.joystickBase.fillStyle(
       parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
-      0.5
+      0.6
     );
     this.joystickBase.fillCircle(0, 0, baseSize / 2);
     this.joystickBase.lineStyle(
@@ -130,175 +68,260 @@ export class MobileControlsScene extends Phaser.Scene {
       0.8
     );
     this.joystickBase.strokeCircle(0, 0, baseSize / 2);
-    this.joystickBase.setPosition(
-      margin + baseSize / 2,
-      this.cameras.main.height - margin - baseSize / 2
-    );
+    this.joystickBase.setPosition(joystickX, joystickY);
     this.joystickBase.setScrollFactor(0);
-    this.joystickBase.setDepth(1000);
 
     // Ручка джойстика
+    const thumbSize = baseSize * 0.4;
     this.joystickThumb = this.add.graphics();
     this.joystickThumb.fillStyle(
-      parseInt(COLORS.BK_YELLOW.replace("#", ""), 16),
+      parseInt(COLORS.BK_RED.replace("#", ""), 16),
       0.9
     );
     this.joystickThumb.fillCircle(0, 0, thumbSize / 2);
     this.joystickThumb.lineStyle(
       3,
-      parseInt(COLORS.WHITE.replace("#", ""), 16)
+      parseInt(COLORS.WHITE.replace("#", ""), 16),
+      1
     );
     this.joystickThumb.strokeCircle(0, 0, thumbSize / 2);
-    this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
+    this.joystickThumb.setPosition(joystickX, joystickY);
     this.joystickThumb.setScrollFactor(0);
-    this.joystickThumb.setDepth(1001);
 
-    // Делаем джойстик интерактивным
+    // Делаем интерактивными
     this.joystickBase.setInteractive(
       new Phaser.Geom.Circle(0, 0, baseSize / 2),
       Phaser.Geom.Circle.Contains
     );
   }
 
-  private setupTouchEvents(): void {
-    // События для кнопки прыжка
+  private createJumpButton(): void {
+    const { width, height } = this.cameras.main;
+
+    // Адаптивные размеры и позиционирование
+    const isPortrait = height > width;
+    const buttonSize = isPortrait ? 100 : 80; // Больше в портретной ориентации
+    const margin = isPortrait ? 30 : 20;
+
+    // Позиционирование кнопки прыжка
+    const buttonX = width - buttonSize / 2 - margin;
+    const buttonY = height - buttonSize / 2 - margin;
+
+    this.jumpButton = this.add.graphics();
+    this.jumpButton.fillStyle(
+      parseInt(COLORS.BK_RED.replace("#", ""), 16),
+      0.8
+    );
+    this.jumpButton.fillCircle(0, 0, buttonSize / 2);
+    this.jumpButton.lineStyle(
+      4,
+      parseInt(COLORS.WHITE.replace("#", ""), 16),
+      1
+    );
+    this.jumpButton.strokeCircle(0, 0, buttonSize / 2);
+    this.jumpButton.setPosition(buttonX, buttonY);
+    this.jumpButton.setScrollFactor(0);
+
+    // Стрелка вверх
+    const arrowSize = buttonSize * 0.3;
+    const arrow = this.add.graphics();
+    arrow.lineStyle(6, parseInt(COLORS.WHITE.replace("#", ""), 16), 1);
+    arrow.beginPath();
+    arrow.moveTo(-arrowSize / 2, arrowSize / 4);
+    arrow.lineTo(0, -arrowSize / 2);
+    arrow.lineTo(arrowSize / 2, arrowSize / 4);
+    arrow.strokePath();
+    arrow.setPosition(buttonX, buttonY);
+    arrow.setScrollFactor(0);
+
+    this.jumpButton.setInteractive(
+      new Phaser.Geom.Circle(0, 0, buttonSize / 2),
+      Phaser.Geom.Circle.Contains
+    );
+  }
+
+  private createPauseButton(): void {
+    const { width } = this.cameras.main;
+
+    // Адаптивные размеры
+    const isPortrait = this.cameras.main.height > width;
+    const buttonSize = isPortrait ? 60 : 50;
+    const margin = isPortrait ? 30 : 20;
+
+    // Позиционирование кнопки паузы
+    const buttonX = width - margin - buttonSize / 2;
+    const buttonY = margin + buttonSize / 2;
+
+    this.pauseButton = this.add.graphics();
+    this.pauseButton.fillStyle(
+      parseInt(COLORS.BK_BROWN.replace("#", ""), 16),
+      0.8
+    );
+    this.pauseButton.fillRoundedRect(
+      -buttonSize / 2,
+      -buttonSize / 2,
+      buttonSize,
+      buttonSize,
+      10
+    );
+    this.pauseButton.lineStyle(
+      3,
+      parseInt(COLORS.WHITE.replace("#", ""), 16),
+      1
+    );
+    this.pauseButton.strokeRoundedRect(
+      -buttonSize / 2,
+      -buttonSize / 2,
+      buttonSize,
+      buttonSize,
+      10
+    );
+
+    // Символ паузы (две вертикальные линии)
+    const lineWidth = buttonSize * 0.1;
+    const lineHeight = buttonSize * 0.4;
+    const spacing = buttonSize * 0.15;
+
+    this.pauseButton.fillStyle(parseInt(COLORS.WHITE.replace("#", ""), 16), 1);
+    this.pauseButton.fillRect(
+      -spacing - lineWidth / 2,
+      -lineHeight / 2,
+      lineWidth,
+      lineHeight
+    );
+    this.pauseButton.fillRect(
+      spacing - lineWidth / 2,
+      -lineHeight / 2,
+      lineWidth,
+      lineHeight
+    );
+
+    this.pauseButton.setPosition(buttonX, buttonY);
+    this.pauseButton.setScrollFactor(0);
+
+    this.pauseButton.setInteractive(
+      new Phaser.Geom.Rectangle(
+        -buttonSize / 2,
+        -buttonSize / 2,
+        buttonSize,
+        buttonSize
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+  }
+
+  private setupInputHandlers(): void {
+    // Обработчики джойстика
+    this.joystickBase.on("pointerdown", this.onJoystickDown, this);
+    this.input.on("pointermove", this.onJoystickMove, this);
+    this.input.on("pointerup", this.onJoystickUp, this);
+
+    // Обработчики кнопки прыжка
     this.jumpButton.on("pointerdown", () => {
-      this.jumpPressed = true;
-      this.jumpButton.setAlpha(0.8);
-      this.emitControlEvent("jump", true);
+      this.jumpButton.setAlpha(0.6);
+      this.sendMobileControl("jump", true);
     });
-
     this.jumpButton.on("pointerup", () => {
-      this.jumpPressed = false;
       this.jumpButton.setAlpha(1);
-      this.emitControlEvent("jump", false);
+      this.sendMobileControl("jump", false);
     });
-
     this.jumpButton.on("pointerout", () => {
-      this.jumpPressed = false;
       this.jumpButton.setAlpha(1);
-      this.emitControlEvent("jump", false);
+      this.sendMobileControl("jump", false);
     });
 
-    // События для кнопки паузы
+    // Обработчики кнопки паузы
     this.pauseButton.on("pointerdown", () => {
-      this.pauseButton.setAlpha(0.8);
-      this.emitControlEvent("pause", true);
+      this.pauseButton.setAlpha(0.6);
+      this.sendMobileControl("pause", true);
     });
-
     this.pauseButton.on("pointerup", () => {
       this.pauseButton.setAlpha(1);
     });
-
-    // События для джойстика
-    this.joystickBase.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      this.joystickActive = true;
-      this.updateJoystick(pointer);
-    });
-
-    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-      if (this.joystickActive) {
-        this.updateJoystick(pointer);
-      }
-    });
-
-    this.input.on("pointerup", () => {
-      if (this.joystickActive) {
-        this.joystickActive = false;
-        this.resetJoystick();
-      }
-    });
   }
 
-  private updateJoystick(pointer: Phaser.Input.Pointer): void {
-    const baseX = this.joystickBase.x;
-    const baseY = this.joystickBase.y;
-    const maxDistance = 40; // Максимальное расстояние от центра
+  private onJoystickDown(): void {
+    this.isJoystickActive = true;
+    this.joystickStartX = this.joystickBase.x;
+    this.joystickStartY = this.joystickBase.y;
+    this.joystickBase.setAlpha(0.8);
+  }
 
-    // Вычисляем расстояние от центра джойстика
+  private onJoystickMove(pointer: Phaser.Input.Pointer): void {
+    if (!this.isJoystickActive) return;
+
     const distance = Phaser.Math.Distance.Between(
-      baseX,
-      baseY,
+      this.joystickStartX,
+      this.joystickStartY,
       pointer.x,
       pointer.y
     );
 
-    let thumbX = pointer.x;
-    let thumbY = pointer.y;
+    const maxDistance = 50;
+    const angle = Phaser.Math.Angle.Between(
+      this.joystickStartX,
+      this.joystickStartY,
+      pointer.x,
+      pointer.y
+    );
 
-    // Ограничиваем движение ручки джойстика
-    if (distance > maxDistance) {
-      const angle = Phaser.Math.Angle.Between(
-        baseX,
-        baseY,
-        pointer.x,
-        pointer.y
+    if (distance < maxDistance) {
+      this.joystickThumb.setPosition(pointer.x, pointer.y);
+    } else {
+      this.joystickThumb.setPosition(
+        this.joystickStartX + Math.cos(angle) * maxDistance,
+        this.joystickStartY + Math.sin(angle) * maxDistance
       );
-      thumbX = baseX + Math.cos(angle) * maxDistance;
-      thumbY = baseY + Math.sin(angle) * maxDistance;
     }
 
-    // Обновляем позицию ручки
-    this.joystickThumb.setPosition(thumbX, thumbY);
-
-    // Вычисляем направление (-1 до 1)
-    this.joystickDirection.x = (thumbX - baseX) / maxDistance;
-    this.joystickDirection.y = (thumbY - baseY) / maxDistance;
-
     // Определяем направление движения
-    const threshold = 0.3;
-    this.leftPressed = this.joystickDirection.x < -threshold;
-    this.rightPressed = this.joystickDirection.x > threshold;
+    const normalizedDistance = Math.min(distance / maxDistance, 1);
+    const horizontalInput = Math.cos(angle) * normalizedDistance;
 
-    // Отправляем события управления
-    this.emitControlEvent("left", this.leftPressed);
-    this.emitControlEvent("right", this.rightPressed);
+    if (horizontalInput < -0.3) {
+      this.sendMobileControl("left", true);
+      this.sendMobileControl("right", false);
+    } else if (horizontalInput > 0.3) {
+      this.sendMobileControl("right", true);
+      this.sendMobileControl("left", false);
+    } else {
+      this.sendMobileControl("left", false);
+      this.sendMobileControl("right", false);
+    }
   }
 
-  private resetJoystick(): void {
-    // Возвращаем ручку в центр
+  private onJoystickUp(): void {
+    if (!this.isJoystickActive) return;
+
+    this.isJoystickActive = false;
     this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
-    this.joystickDirection = { x: 0, y: 0 };
+    this.joystickBase.setAlpha(1);
 
-    // Сбрасываем состояние кнопок
-    this.leftPressed = false;
-    this.rightPressed = false;
-
-    // Отправляем события сброса
-    this.emitControlEvent("left", false);
-    this.emitControlEvent("right", false);
+    // Остановка движения
+    this.sendMobileControl("left", false);
+    this.sendMobileControl("right", false);
   }
 
-  private emitControlEvent(action: string, pressed: boolean): void {
-    // Отправляем события в игровую сцену
+  private sendMobileControl(action: string, pressed: boolean): void {
     this.scene.get(SCENES.GAME)?.events.emit("mobileControl", {
       action,
       pressed,
-      direction: this.joystickDirection,
     });
-  }
-
-  // Публичные методы для получения состояния управления
-  public getControlState() {
-    return {
-      left: this.leftPressed,
-      right: this.rightPressed,
-      jump: this.jumpPressed,
-      direction: this.joystickDirection,
-    };
-  }
-
-  public isJoystickActive(): boolean {
-    return this.joystickActive;
   }
 
   // Обновление размеров при изменении ориентации
   public resize(width: number, height: number): void {
     if (!this.isMobileDevice()) return;
 
-    // Обновляем позиции элементов управления
-    const buttonSize = 80;
-    const margin = 20;
+    console.log(
+      `🔄 MobileControlsScene: Адаптация к размеру ${width}x${height}`
+    );
+
+    // Адаптивные размеры в зависимости от ориентации
+    const isPortrait = height > width;
+    const buttonSize = isPortrait ? 100 : 80;
+    const joystickSize = isPortrait ? 120 : 100;
+    const margin = isPortrait ? 30 : 20;
 
     // Кнопка прыжка
     this.jumpButton.setPosition(
@@ -307,14 +330,23 @@ export class MobileControlsScene extends Phaser.Scene {
     );
 
     // Кнопка паузы
-    this.pauseButton.setPosition(width - 50, 50);
+    const pauseButtonSize = isPortrait ? 60 : 50;
+    this.pauseButton.setPosition(
+      width - margin - pauseButtonSize / 2,
+      margin + pauseButtonSize / 2
+    );
 
     // Джойстик
-    const baseSize = 100;
     this.joystickBase.setPosition(
-      margin + baseSize / 2,
-      height - margin - baseSize / 2
+      margin + joystickSize / 2,
+      height - margin - joystickSize / 2
     );
     this.joystickThumb.setPosition(this.joystickBase.x, this.joystickBase.y);
+
+    console.log(
+      `✅ MobileControlsScene: Адаптация завершена (${
+        isPortrait ? "портрет" : "пейзаж"
+      })`
+    );
   }
 }
